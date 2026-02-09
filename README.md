@@ -2,6 +2,10 @@
 
 Yüksek performanslı görüntü işleme motoru. **CUDA C++** kullanılarak geliştirilmiştir.
 
+## Third-Party Libraries
+Bu proje aşağıdaki açık kaynak kütüphaneleri kullanmaktadır:
+* [stb](https://github.com/nothings/stb) - Resim yükleme ve kaydetme işlemleri için (Public Domain / MIT).
+
 ## Özellikler
 - **GPU Hızlandırma:** Görüntü yükleme, işleme ve kaydetme süreçleri optimize edildi.
 - **Kernel Yönetimi:** `src/ElementaryMatrixOp.cu` üzerinden özel CUDA çekirdekleri.
@@ -19,3 +23,4 @@ Bu proje **CLion** ve **CMake** ile geliştirilmiştir.
 
 GeneralOperations myImage("assets/input.jpg");
 myImage.saveImage("assets/output.png");
+```
