@@ -1,0 +1,28 @@
+# CMake Build Klasörleri
+cmake-build-debug/
+cmake-build-release/
+build/
+bin/
+lib/
+
+# IDE Dosyaları (CLion / VS Code)
+.idea/
+.vscode/
+*.swp
+*.user
+
+# Derlenmiş Çıktılar
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+*.ilk
+
+# Resim Çıktıları (Test sonuçlarını yüklemeyelim)
+assets/blonde_*.png
+
+
+# İşletim Sistemi Dosyaları
+.DS_Store
+Thumbs.db

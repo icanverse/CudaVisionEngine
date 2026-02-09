@@ -1,0 +1,13 @@
+//
+// Created by Can on 9.02.2026.
+//
+
+#ifndef CUDAVISIONENGINE_ENGINEMANAGEMENT_H
+#define CUDAVISIONENGINE_ENGINEMANAGEMENT_H
+
+
+class EngineManagement {
+};
+
+
+#endif //CUDAVISIONENGINE_ENGINEMANAGEMENT_H
