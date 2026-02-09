@@ -3,6 +3,7 @@ cmake-build-debug/
 cmake-build-release/
 build/
 bin/
+assets/
 
 # IDE Dosyaları (CLion / VS Code)
 .idea/
@@ -19,7 +20,7 @@ bin/
 *.ilk
 
 # Resim Çıktıları (Test sonuçlarını yüklemeyelim)
-assets/blonde.png
+assets/blonde.jpg
 
 
 # İşletim Sistemi Dosyaları
