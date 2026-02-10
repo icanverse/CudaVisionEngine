@@ -1,0 +1,13 @@
+//
+// Created by Can on 10.02.2026.
+//
+
+#ifndef CUDAVISIONENGINE_SMOOTHING_CUH
+#define CUDAVISIONENGINE_SMOOTHING_CUH
+
+
+class Smoothing {
+};
+
+
+#endif //CUDAVISIONENGINE_SMOOTHING_CUH

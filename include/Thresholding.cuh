@@ -1,0 +1,13 @@
+//
+// Created by Can on 10.02.2026.
+//
+
+#ifndef CUDAVISIONENGINE_THRESHOLDING_CUH
+#define CUDAVISIONENGINE_THRESHOLDING_CUH
+
+
+class Thresholding {
+};
+
+
+#endif //CUDAVISIONENGINE_THRESHOLDING_CUH
