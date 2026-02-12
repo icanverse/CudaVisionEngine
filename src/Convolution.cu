@@ -1,4 +1,8 @@
-#include "../include/EdgeDetection.cuh"
+//
+// Created by Can on 13.02.2026.
+//
+
+#include "../include/Convolution.cuh"
 
 /// Sobel Kenar Filtresi Yöntemi --- Paylaşımlı Bellek Kullanıyor
 __global__ void sobel_edge_det(const float* A, float* Result, int width, int height) {

@@ -1,9 +1,9 @@
 //
-// Created by Can on 9.02.2026.
+// Created by Can on 13.02.2026.
 //
 
-#ifndef CUDAVISIONENGINE_ELEMENTARYMATRIXOP_CUH
-#define CUDAVISIONENGINE_ELEMENTARYMATRIXOP_CUH
+#ifndef CUDAVISIONENGINE_ELEMENTARYMATRIX_CUH
+#define CUDAVISIONENGINE_ELEMENTARYMATRIX_CUH
 
 #define TILE_SIZE 32
 
@@ -13,4 +13,5 @@ __global__ void matrix_add(const float* source_matrix1, const float* source_matr
 __global__ void matrix_add_with_sharedmem(const float* source_matrix1, const float* source_matrix2, float* dest_matrix, int size);
 __global__ void matrix_mul(const float* source_matrix1, const float* source_matrix2, float* dest_matrix, int size);
 
-#endif //CUDAVISIONENGINE_ELEMENTARYMATRIXOP_CUH
+
+#endif //CUDAVISIONENGINE_ELEMENTARYMATRIX_CUH

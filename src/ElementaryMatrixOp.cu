@@ -1,6 +1,3 @@
-//
-// Created by Can on 9.02.2026.
-//
 
 #include "../include/ElementaryMatrixOp.cuh"
 
