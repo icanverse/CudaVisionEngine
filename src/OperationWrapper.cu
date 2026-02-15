@@ -32,28 +32,35 @@ void OperationWrapper::denormalize(float* d_input, unsigned char* d_output, int 
 }
 
 void OperationWrapper::smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize) {
-    // 1. Blok Boyutlarını Belirle (Genellikle 16x16 veya 32x32 idealdir)
+    // 1. Blok Boyutlarını Belirle
     dim3 blockSize(16, 16);
 
     // 2. Izgara (Grid) Boyutlarını Hesapla
-    // (width + 15) / 16 formülü, tam bölünmeyen durumlarda fazladan blok eklenmesini sağlar
     dim3 gridSize(
         (width + blockSize.x - 1) / blockSize.x,
         (height + blockSize.y - 1) / blockSize.y
     );
 
-    // 3. Kernel'ı Başlat
-    // Not: A ve Result işaretçilerinin zaten GPU (Device) belleğinde olduğu varsayılmaktadır.
-    ::smoothing2D<<<gridSize, blockSize>>>(A, Result, width, height, channels, kernelSize);
+    // --- KRİTİK DÜZELTME BAŞLANGICI ---
 
-    // 4. Hata Kontrolü (Opsiyonel ama Tavsiye Edilir)
+    // 3. Shared Memory Boyutunu Hesapla
+    // Kernel içinde kullandığımız formül: (Tile + 2*Radius) * (Tile + 2*Radius)
+    int radius = kernelSize / 2;
+    size_t sharedMemSize = (blockSize.x + 2 * radius) * (blockSize.y + 2 * radius) * sizeof(float);
+
+    // 4. Kernel'ı Başlat (3. parametre olarak sharedMemSize eklendi)
+    ::smoothing2D<<<gridSize, blockSize, sharedMemSize>>>(A, Result, width, height, channels, kernelSize);
+
+    // --- KRİTİK DÜZELTME BİTİŞİ ---
+
+    // 5. Hata Kontrolü
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        printf("CUDA Error: %s\n", cudaGetErrorString(err));
+        printf("CUDA Error in smoothing2D: %s\n", cudaGetErrorString(err));
     }
 
-    // Gerekirse senkronizasyon (İsteğe bağlı, CPU'nun devam etmeden beklemesini sağlar)
-    // cudaDeviceSynchronize();
+    // Kernel bitene kadar CPU'yu beklet (Debugging için iyidir)
+    cudaDeviceSynchronize();
 }
 
 void OperationWrapper::add(const float* d_A, const float* d_B, float* d_C, int size, bool useSharedMem) {

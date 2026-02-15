@@ -5,6 +5,7 @@
 #ifndef CUDAVISIONENGINE_SMOOTHING_CUH
 #define CUDAVISIONENGINE_SMOOTHING_CUH
 
+#define TILE_SIZE 32
 
 __global__ void smoothing(const float* A,float* Result, int size);
 __global__ void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);

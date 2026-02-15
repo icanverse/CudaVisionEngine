@@ -25,7 +25,7 @@ int main() {
     // 4. Kernel İşlemini Uygula
     // Input: engine.getDeviceData()
     // Output: d_output_temp
-    int kernelSize = 3; // Örnek: 15x15 blur (tek sayı olmalı)
+    int kernelSize = 7; // Örnek: 15x15 blur (tek sayı olmalı)
 
     std::cout << "[Main] Applying Smoothing Kernel (" << kernelSize << "x" << kernelSize << ")..." << std::endl;
 
