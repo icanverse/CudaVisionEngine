@@ -2,7 +2,7 @@
 // Created by Can on 13.02.2026.
 //
 
-#include "../include/Thresholding.cuh"
+#include "../../include/Thresholding.cuh"
 
 
 __global__ void thresholding(const float* source, float* result, int width, int height) {

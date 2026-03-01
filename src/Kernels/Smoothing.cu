@@ -1,4 +1,4 @@
-#include "../include/Smoothing.cuh"
+#include "../../include/Smoothing.cuh"
 
 
 __global__ void smoothing(const float* A,float* Result, int size) {

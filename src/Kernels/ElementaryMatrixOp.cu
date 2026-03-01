@@ -1,5 +1,5 @@
 
-#include "../include/ElementaryMatrixOp.cuh"
+#include "../../include/ElementaryMatrixOp.cuh"
 
 __global__ void k_normalizeImage(unsigned char* input, float* output, int totalElements) {
     // Her thread kendi kimliğini (ID) hesaplar

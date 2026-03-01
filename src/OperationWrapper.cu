@@ -5,8 +5,19 @@
 #include "OperationWrapper.cuh"
 #include "ElementaryMatrixOp.cuh"
 #include "Smoothing.cuh"
+#include "ColorSpaceConverter.cuh"
 #include <cstdio>
-// --- Implementasyon ---
+
+#include "ColorOperation.cuh"
+
+void OperationWrapper::calculateGrid(int width, int height, dim3& gridSize, dim3& blockSize) {
+    blockSize = dim3(16, 16);
+    gridSize = dim3(
+        (width + blockSize.x - 1) / blockSize.x,
+        (height + blockSize.y - 1) / blockSize.y
+    );
+}
+
 
 void OperationWrapper::normalize(unsigned char* d_input, float* d_output, int width, int height) {
     int totalElements = width * height;
@@ -62,6 +73,55 @@ void OperationWrapper::smoothing2D(const float* A, float* Result, int width, int
     // Kernel bitene kadar CPU'yu beklet (Debugging için iyidir)
     cudaDeviceSynchronize();
 }
+
+void OperationWrapper::rgbToHsv(const float* d_input, float* d_output, int width, int height, int channels) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
+
+    ::rgbToHsv<<<gridSize, blockSize>>>(d_input, d_output, width, height, channels);
+
+    checkKernelError("Convert RGB to HSV");
+
+    cudaDeviceSynchronize();
+
+}
+
+void OperationWrapper::hsvToRgb(const float* d_input, float* d_output, int width, int height, int channels) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
+
+    ::hsvToRgb<<<gridSize, blockSize>>>(d_input, d_output, width, height, channels);
+
+    checkKernelError("Convert HSV to RGB");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::isolateColor(float *d_hsv, int width, int height, int channels, float targetHue, float tolerance) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
+
+    ::isolateColor<<<gridSize, blockSize>>>(d_hsv, width, height, channels, targetHue, tolerance);
+
+    checkKernelError("İsolate Color");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::colorReplacement(float *d_hsv, int width, int height, int channels, float targetHue, float tolerance, float replacementHue) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
+
+    ::colorReplacement<<<gridSize, blockSize>>>(d_hsv, width, height, channels, targetHue, tolerance, replacementHue);
+
+    checkKernelError("İsolate Color");
+
+    cudaDeviceSynchronize();
+}
+
+
+
+
 
 void OperationWrapper::add(const float* d_A, const float* d_B, float* d_C, int size, bool useSharedMem) {
     // 2D Grid Hesabı

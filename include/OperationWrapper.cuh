@@ -1,11 +1,14 @@
-//
-// Created by Can on 13.02.2026.
-//
-
 #ifndef CUDAVISIONENGINE_OPERATIONWRAPPER_CUH
 #define CUDAVISIONENGINE_OPERATIONWRAPPER_CUH
+
 #include <cstdio>
+
 class OperationWrapper {
+
+private:
+    static void calculateGrid(int width, int height, dim3& gridSize, dim3& blockSize);
+
+
 public:
     // Görüntü İşleme Fonksiyonları
     static void normalize(unsigned char* d_input, float* d_output, int width, int height);
@@ -20,6 +23,14 @@ public:
     static void getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize);
 
     static void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);
+
+    // Renk Uzayı
+    static void rgbToHsv(const float* d_input, float* d_output, int width, int height, int channels);
+    static void hsvToRgb(const float* A, float* Result, int width, int height, int chanel);
+
+    // Renk Uzayına Bağlı İşlemler
+    static void isolateColor(float* d_hsv, int width, int height, int channels, float targetHue, float tolerance);
+    static void colorReplacement(float* d_hsv, int width, int height, int channels, float targetHue, float tolerance, float replacementHue);
 
 private:
     // Yardımcı: Hata kontrolü

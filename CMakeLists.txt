@@ -24,18 +24,22 @@ file(GLOB_RECURSE SOURCE_FILES "src/*.cu" "src/*.cpp")
 add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/EngineFactory.cu
         include/EngineFactory.cuh
-        src/ElementaryMatrixOp.cu
+        src/Kernels/ElementaryMatrixOp.cu
         include/ElementaryMatrixOp.cuh
-        src/Smoothing.cu
+        src/Kernels/Smoothing.cu
         include/Smoothing.cuh
-        src/Convolution.cu
+        src/Kernels/Convolution.cu
         include/Convolution.cuh
-        src/Thresholding.cu
+        src/Kernels/Thresholding.cu
         include/Thresholding.cuh
         src/OperationWrapper.cu
         include/OperationWrapper.cuh
         src/main.cpp
-        include/main.h)
+        include/main.h
+        src/ColorSpaceConverter.cu
+        include/ColorSpaceConverter.cuh
+        src/Kernels/ColorOperation.cu
+        include/ColorOperation.cuh)
 
 
 # Kütüphaneleri bağla
