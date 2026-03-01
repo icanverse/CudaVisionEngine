@@ -9,6 +9,7 @@
 #include <cstdio>
 
 #include "ColorOperation.cuh"
+#include "ToneAdjustment.cuh"
 
 void OperationWrapper::calculateGrid(int width, int height, dim3& gridSize, dim3& blockSize) {
     blockSize = dim3(16, 16);
@@ -119,8 +120,38 @@ void OperationWrapper::colorReplacement(float *d_hsv, int width, int height, int
     cudaDeviceSynchronize();
 }
 
+void OperationWrapper::brightnessAdjustment(float *d_hsv, int width, int height, int channels, float value) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
 
+    ::brightnessAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, value);
 
+    checkKernelError("Brightness Adjustment");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::saturationAdjustment(float *d_hsv, int width, int height, int channels, float value) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::saturationAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, value);
+
+    checkKernelError("Saturation Adjustment");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::contrastAdjustment(float *d_hsv, int width, int height, int channels, float contrastFactor, float midpoint) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::contrastAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, contrastFactor, midpoint);
+
+    checkKernelError("Contrast Adjustment");
+
+    cudaDeviceSynchronize();
+}
 
 
 void OperationWrapper::add(const float* d_A, const float* d_B, float* d_C, int size, bool useSharedMem) {

@@ -39,7 +39,9 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/ColorSpaceConverter.cu
         include/ColorSpaceConverter.cuh
         src/Kernels/ColorOperation.cu
-        include/ColorOperation.cuh)
+        include/ColorOperation.cuh
+        src/Kernels/ToneAdjustment.cu
+        include/ToneAdjustment.cuh)
 
 
 # Kütüphaneleri bağla

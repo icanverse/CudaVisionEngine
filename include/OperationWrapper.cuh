@@ -22,6 +22,7 @@ public:
     // Alt Matris Bulma (Kofaktör/Determinant hesapları için)
     static void getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize);
 
+    // Blur İşlemi
     static void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);
 
     // Renk Uzayı
@@ -31,6 +32,12 @@ public:
     // Renk Uzayına Bağlı İşlemler
     static void isolateColor(float* d_hsv, int width, int height, int channels, float targetHue, float tolerance);
     static void colorReplacement(float* d_hsv, int width, int height, int channels, float targetHue, float tolerance, float replacementHue);
+
+    // Ton Ayarlamaları
+    static void saturationAdjustment(float* d_hsv, int width, int height, int channels, float value);
+    static void brightnessAdjustment(float* d_hsv, int width, int height, int channels, float value);
+    static void contrastAdjustment(float* d_hsv, int width, int height, int channels, float contrastFactor, float midpoint);
+
 
 private:
     // Yardımcı: Hata kontrolü
