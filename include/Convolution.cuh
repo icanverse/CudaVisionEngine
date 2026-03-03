@@ -9,6 +9,9 @@
 #define TILE_SIZE 16
 #define RADIUS 1
 
+
+__global__ void sharpen(const float* input, float* output, int width, int height, int channels);
+
 __global__ void smoothing(const float* A,float* Result, int size);
 __global__ void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);
 

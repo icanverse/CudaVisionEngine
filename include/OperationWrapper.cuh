@@ -23,6 +23,8 @@ public:
     static void getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize);
 
     // Blur İşlemi
+
+    static void sharpen(const float* input, float* output, int width, int height, int channels);
     static void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);
 
     // Renk Uzayı
@@ -37,6 +39,11 @@ public:
     static void saturationAdjustment(float* d_hsv, int width, int height, int channels, float value);
     static void brightnessAdjustment(float* d_hsv, int width, int height, int channels, float value);
     static void contrastAdjustment(float* d_hsv, int width, int height, int channels, float contrastFactor, float midpoint);
+    static void shadowsHighlightsAdjustment(float* d_hsv, int width, int height, int channels, float shadowAmount, float highlightAmount);
+    static void temperatureAdjustment(float* d_rgb, int width, int height, int channels, float temperature);
+    static void gammaCorrectionAdjustment(float* d_hsv, int width, int height, int channels, float gamma);
+
+
 
 
 private:

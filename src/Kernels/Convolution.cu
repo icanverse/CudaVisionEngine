@@ -4,6 +4,60 @@
 
 #include "../../include/Convolution.cuh"
 
+__global__ void applyConvulationKernel(const float* input, float* output, int width, int height) {
+
+}
+
+__global__ void sharpen(const float* input, float* output, int width, int height, int channels) {
+    unsigned int dx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int dy = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (dx < width && dy < height) {
+        unsigned int base_index = (dy * width + dx) * channels;
+
+        for (int c = 0; c < channels; ++c) {
+
+            // Alpha kanalıysa kopyala ve geç
+            if (c == 3) {
+                output[base_index + c] = input[base_index + c];
+                continue;
+            }
+
+            float sum = 0.0f;
+
+            // 3. Komşuları Gez (3x3 Matris)
+            for (int ky = -1; ky <= 1; ky++) {
+                for (int kx = -1; kx <= 1; kx++) {
+
+                    // DÜZELTME: Negatif olabilmeleri için 'int' kullanıyoruz
+                    int nx = dx + kx;
+                    int ny = dy + ky;
+
+                    int clamped_x = max(0, min(nx, width - 1));
+                    int clamped_y = max(0, min(ny, height - 1));
+
+                    // GÖREV 3: Komşunun gerçek indeksi
+                    unsigned int neighbor_index = (clamped_y * width + clamped_x) * channels + c;
+
+                    // GÖREV 4 & 5: Ağırlığı belirle ve toplama ekle
+                    float weight;
+                    if (kx == 0 && ky == 0) {
+                        weight = 9.0f;  // Merkez pikseli çok güçlü parlat
+                    } else {
+                        weight = -1.0f; // Etrafındaki pikselleri çıkar (Kontrastı aç)
+                    }
+
+                    // Komşunun değerini ağırlıkla çarp ve toplama ekle
+                    sum += input[neighbor_index] * weight;
+                }
+            }
+
+            // GÖREV 6: Clamp ve Geri Yazma
+            // Keskinleştirme işlemi sınırları çok çabuk aşar, bu yüzden clamp şarttır.
+            output[base_index + c] = fminf(1.0f, fmaxf(0.0f, sum));
+        }
+    }
+}
 /// Sobel Kenar Filtresi Yöntemi --- Paylaşımlı Bellek Kullanıyor
 __global__ void sobel_edge_det(const float* A, float* Result, int width, int height) {
     // Shared Mem

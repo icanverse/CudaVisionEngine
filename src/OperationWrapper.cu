@@ -10,6 +10,7 @@
 
 #include "ColorOperation.cuh"
 #include "ToneAdjustment.cuh"
+#include "Convolution.cuh"
 
 void OperationWrapper::calculateGrid(int width, int height, dim3& gridSize, dim3& blockSize) {
     blockSize = dim3(16, 16);
@@ -41,6 +42,17 @@ void OperationWrapper::denormalize(float* d_input, unsigned char* d_output, int 
     k_denormalizeImage<<<gridSize, blockSize>>>(d_input, d_output, totalElements);
 
     checkKernelError("Denormalize Image");
+}
+
+void OperationWrapper::sharpen(const float *input, float *output, int width, int height, int channels) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
+
+    ::sharpen<<<gridSize, blockSize>>>(input, output, width, height, channels);
+
+    checkKernelError("Convert RGB to HSV");
+
+    cudaDeviceSynchronize();
 }
 
 void OperationWrapper::smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize) {
@@ -149,6 +161,39 @@ void OperationWrapper::contrastAdjustment(float *d_hsv, int width, int height, i
     ::contrastAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, contrastFactor, midpoint);
 
     checkKernelError("Contrast Adjustment");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::shadowsHighlightsAdjustment(float *d_hsv, int width, int height, int channels, float shadowAmount, float highlightAmount) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::shadowsHighlightsAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, shadowAmount, highlightAmount);
+
+    checkKernelError("Shadows - Highlights Adjustment");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::temperatureAdjustment(float *d_rgb, int width, int height, int channels, float temperature) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::temperatureAdjustment<<<gridSize, blockSize>>>(d_rgb, width, height, channels, temperature);
+
+    checkKernelError("Temperature Adjustment");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::gammaCorrectionAdjustment(float *d_hsv, int width, int height, int channels, float gamma) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::gammaCorrectionAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, gamma);
+
+    checkKernelError("Gamma Correction Adjustment");
 
     cudaDeviceSynchronize();
 }
