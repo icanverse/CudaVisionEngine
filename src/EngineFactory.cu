@@ -5,6 +5,7 @@
 #include "stb_image_write.h"
 #include "ElementaryMatrixOp.cuh"
 #include "EngineFactory.cuh"
+#include "OperationWrapper.cuh"
 
 #include "stb_image.h"
 #include "stb_image_write.h"
@@ -54,18 +55,17 @@ EngineFactory::~EngineFactory() {
 
 void EngineFactory::allocateMemory() {
     size_t floatSizeBytes = totalElementCount * sizeof(float);
-    cudaError_t err = cudaMalloc(&d_data, floatSizeBytes);
-    if (err != cudaSuccess) {
-        std::cerr << "CUDA Malloc Failed: " << cudaGetErrorString(err) << std::endl;
+    cudaError_t err1 = cudaMalloc(&d_data, floatSizeBytes);
+    cudaError_t err2 = cudaMalloc(&d_temp_data, floatSizeBytes);
+    if (err1 != cudaSuccess || err2 != cudaSuccess) {
+        std::cerr << "CUDA Malloc Failed: " << cudaGetErrorString(err1) << cudaGetErrorString(err2)<< std::endl;
         exit(1);
     }
 }
 
 void EngineFactory::cleanUp() {
-    if (d_data) {
-        cudaFree(d_data);
-        d_data = nullptr;
-    }
+    if (d_data) { cudaFree(d_data); d_data = nullptr; }
+    if (d_temp_data) { cudaFree(d_temp_data); d_temp_data = nullptr; }
 }
 
 
@@ -96,4 +96,40 @@ void EngineFactory::saveImage(const char* filename) {
     // 6. Temizlik
     cudaFree(d_output_uchar);
     std::cout << "[EngineFactory] Saved successfully!" << std::endl;
+}
+
+EngineFactory& EngineFactory::rgbToHsv() {
+    // d_data'yı oku, d_temp_data'ya (HSV olarak) yaz
+    OperationWrapper::rgbToHsv(d_data, d_temp_data, width, height, channels);
+
+    // İşaretçileri (Pointers) takas et!
+    // Artık asıl verimiz d_temp_data'nın gösterdiği yer oldu.
+    // Hiçbir cudaMemcpy (kopyalama) yapmadan 0 zaman maliyetiyle işlemi bitirdik!
+    std::swap(d_data, d_temp_data);
+
+    return *this; // Zincirin devam etmesi için kendini döndür
+}
+
+EngineFactory& EngineFactory::hsvToRgb() {
+    OperationWrapper::hsvToRgb(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data);
+    return *this;
+}
+
+// --- FİLTRELER VE TON AYARLAMALARI (In-Place Mimarisi) ---
+
+EngineFactory& EngineFactory::applyTemperature(float temperature) {
+    // Temperature doğrudan orijinal d_data üzerinde (in-place) çalışır
+    OperationWrapper::temperatureAdjustment(d_data, width, height, channels, temperature);
+    return *this;
+}
+
+EngineFactory& EngineFactory::applyShadowsHighlights(float shadowAmount, float highlightAmount) {
+    OperationWrapper::shadowsHighlightsAdjustment(d_data, width, height, channels, shadowAmount, highlightAmount);
+    return *this;
+}
+
+EngineFactory& EngineFactory::applyGamma(float gamma) {
+    OperationWrapper::gammaCorrectionAdjustment(d_data, width, height, channels, gamma);
+    return *this;
 }

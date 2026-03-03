@@ -15,6 +15,7 @@ private:
 
     // Pointerlar
     float* d_data; // Device (GPU) - İşlenmiş Float Veri (0.0 - 1.0 arası)
+    float* d_temp_data; // Çift Bellek Mimarisi için geçici VRAM alanı
 
     // Yardımcı Fonksiyonlar
     void allocateMemory();
@@ -42,6 +43,16 @@ public:
             cudaMemcpy(d_data, newData, size, cudaMemcpyDeviceToDevice);
         }
     }
+
+    // Renk Uzayı Dönüşümleri (Ping-Pong kullanır)
+    EngineFactory& rgbToHsv();
+    EngineFactory& hsvToRgb();
+
+    // Filtreler (In-place çalışır)
+    EngineFactory& applyTemperature(float temperature);
+    EngineFactory& applyShadowsHighlights(float shadowAmount, float highlightAmount);
+    EngineFactory& applyGamma(float gamma);
+
 
 };
 
