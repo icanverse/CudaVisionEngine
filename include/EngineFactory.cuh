@@ -5,6 +5,9 @@
 #ifndef CUDAVISIONENGINE_ENGINEMANAGEMENT_H
 #define CUDAVISIONENGINE_ENGINEMANAGEMENT_H
 
+#include <utility> // std::swap için eklendi
+#include <cuda_runtime.h>
+
 class EngineFactory {
 private:
     // Görsel Özellikleri
@@ -14,7 +17,7 @@ private:
     size_t totalElementCount; // w * h * c
 
     // Pointerlar
-    float* d_data; // Device (GPU) - İşlenmiş Float Veri (0.0 - 1.0 arası)
+    float* d_data;      // Device (GPU) - İşlenmiş Float Veri (0.0 - 1.0 arası)
     float* d_temp_data; // Çift Bellek Mimarisi için geçici VRAM alanı
 
     // Yardımcı Fonksiyonlar
@@ -22,16 +25,19 @@ private:
     void cleanUp();
 
 public:
-    // Constructor: Dosya adını alır, yükler ve GPU'ya atar
-    EngineFactory(const char* filename);
+    // YENİ: Artık dosya adı yok. Motor sadece boyutları alıp VRAM'de yer ayırır.
+    EngineFactory(int w, int h, int c);
 
     // Destructor: Belleği temizler
     ~EngineFactory();
 
-    // Resmi diske kaydeder
-    void saveImage(const char* filename);
+    // YENİ: RAM'den VRAM'e veri pompalar (Char -> Float normalizasyonu yapar)
+    EngineFactory& uploadFrame(const unsigned char* cpu_data);
 
-    // Getterlar (Gerekirse dışarıdan erişim için)
+    // YENİ: VRAM'den RAM'e işlenmiş veriyi çeker (Float -> Char denormalizasyonu yapar)
+    void downloadFrame(unsigned char* cpu_data);
+
+    // Getterlar
     int getWidth() const { return width; }
     int getHeight() const { return height; }
     int getChannels() const { return channels; }
@@ -44,6 +50,9 @@ public:
         }
     }
 
+    // YENİ: Veriyi CPU'ya indirmeden, doğrudan başka bir VRAM adresine (Interop için) yazar
+    void copyToDeviceUchar(unsigned char* d_dest_uchar);
+
     // Renk Uzayı Dönüşümleri (Ping-Pong kullanır)
     EngineFactory& rgbToHsv();
     EngineFactory& hsvToRgb();
@@ -52,9 +61,6 @@ public:
     EngineFactory& applyTemperature(float temperature);
     EngineFactory& applyShadowsHighlights(float shadowAmount, float highlightAmount);
     EngineFactory& applyGamma(float gamma);
-
-
 };
-
 
 #endif //CUDAVISIONENGINE_ENGINEMANAGEMENT_H

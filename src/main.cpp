@@ -1,20 +1,65 @@
-// main.cpp
 #include <iostream>
 #include <chrono>
-#include <cuda_runtime.h>
+#include <cmath>
+#include <iomanip> // std::setprecision için eklendi
+#include "io/StbImageSource.h"
+#include "io/GlfwInteropTarget.h"
 #include "EngineFactory.cuh"
 
 int main() {
-    EngineFactory engine("assets/holiday.jpeg");
+    std::cout << "[Main] ZERO-COPY Interop Motoru Baslatiliyor..." << std::endl;
 
-    // Zincirleme Filtre Şovu
-    engine.applyTemperature(0.15f)
-          .rgbToHsv()
-          .applyShadowsHighlights(0.2f, -0.1f)
-          .applyGamma(0.8f)
-          .hsvToRgb()
-          .saveImage("assets/holiday_output_fluent.jpg");
+    StbImageSource source("assets/starwars.jpg");
+    unsigned char* rawFrame = source.grabNextFrame();
+    if (!rawFrame) return -1;
 
-    std::cout << "Islem Tamamlandi!" << std::endl;
+    // Sıfır Gecikmeli Interop Monitörünü Başlat
+    GlfwInteropTarget target(source.getWidth(), source.getHeight(), source.getChannels(), "CudaVisionEngine - Zero Copy");
+
+    EngineFactory engine(source.getWidth(), source.getHeight(), source.getChannels());
+
+    auto t_start = std::chrono::high_resolution_clock::now();
+    int frameCount = 0;
+    float timeTracker = 0.0f;
+
+    // THE GAME LOOP
+    while (!target.shouldClose()) {
+        float dynamicTemp = std::sin(timeTracker) * 0.5f;
+        timeTracker += 0.02f;
+
+        // 1. İşlemleri GPU'da Yap (Fluent Interface)
+        engine.uploadFrame(rawFrame)
+              .applyTemperature(dynamicTemp)
+              .rgbToHsv()
+              .applyGamma(1.1f)
+              .hsvToRgb();
+
+        // 2. VRAM Kapısını Aç ve Hedef Adresi Al
+        unsigned char* d_pbo_vram_address = target.mapVRAM();
+
+        // 3. Pikselleri VRAM'den VRAM'e YAZ (CPU'ya kopyalamak yok!)
+        engine.copyToDeviceUchar(d_pbo_vram_address);
+
+        // 4. Kapıyı Kapat ve Monitöre Çiz
+        target.unmapAndRender();
+
+        // Performans ve Gecikme (Latency) Ölçümü
+        frameCount++;
+        if (frameCount % 100 == 0) {
+            auto t_end = std::chrono::high_resolution_clock::now();
+            double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+
+            double avg_latency_ms = elapsed_ms / 100.0; // Kare başına düşen gecikme
+            double fps = 1000.0 / avg_latency_ms;       // Saniyedeki kare sayısı
+
+            std::cout << "Guncel FPS: " << std::fixed << std::setprecision(1) << fps
+                      << " | Gecikme: " << std::fixed << std::setprecision(2) << avg_latency_ms << " ms    \r" << std::flush;
+
+            t_start = std::chrono::high_resolution_clock::now();
+        }
+    }
+
+    source.releaseFrame(rawFrame);
+    std::cout << "\nMotor basariyla kapatildi." << std::endl;
     return 0;
 }

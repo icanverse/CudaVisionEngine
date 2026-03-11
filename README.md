@@ -59,35 +59,119 @@ Platform: NVIDIA CUDA Toolkit v13.x
 Üçüncü Parti Kütüphaneler: - stb - Resim okuma/yazma işlemleri için (Public Domain / MIT)
 
 ## 💻 Kullanım Örneği
-Motor, VRAM üzerindeki işlemleri arka arkaya zincirlemenize (Pipeline) olanak tanır. Aşağıda bir görüntünün yüklenip, HSV uzayında parlaklığının artırılması ve tekrar RGB'ye çevrilerek kaydedilmesi örneğini görebilirsiniz:
+CudaVisionEngineX, Bağımlılıkların Tersine Çevrilmesi (Dependency Inversion) prensibiyle çalışır. Motor, verinin nereden geldiğini bilmez; sadece donanım hızlandırmalı (GPU) zincirleme işlemlere odaklanır.
+
+Aşağıda bir görüntünün diskten okunup, zincirleme (Fluent) metotlarla sinematik bir renk filtresinden geçirilerek tekrar diske kaydedilmesi örneğini görebilirsiniz:
 
 ```cpp
-// GPU üzerinde Normalize & Denormalize işlemleri otomatik yapılır.
 
-#include "CudaVisionEngine.h"
-#include "OperationWrapper.cuh"
+#include <vector>
+#include "io/StbImageSource.h"
+#include "io/StbImageTarget.h"
+#include "EngineFactory.cuh"
 
 int main() {
-    // 1. Motoru başlat ve veriyi belleğe al
-    GeneralOperations myImage("assets/input.jpg");
+    // 1. I/O Modüllerini Başlat (Kaynak ve Hedef)
+    StbImageSource source("assets/input.jpg");
+    StbImageTarget target("assets/output_cinematic.png");
+
+    unsigned char* rawFrame = source.grabNextFrame();
+    if (!rawFrame) return -1;
+
+    // 2. Motoru Başlat (Sadece boyutlara göre VRAM rezerve eder)
+    EngineFactory engine(source.getWidth(), source.getHeight(), source.getChannels());
     
-    int width = myImage.getWidth();
-    int height = myImage.getHeight();
-    int channels = myImage.getChannels();
+    // CPU'da işlenmiş veri için geçici alan
+    std::vector<unsigned char> processedData(source.getWidth() * source.getHeight() * source.getChannels());
 
-    // 2. RGB'den HSV'ye dönüşüm
-    OperationWrapper::rgbToHsv(d_rgb_input, d_hsv_temp, width, height, channels);
+    // 3. Akıcı Arayüz (Fluent Pipeline) ile Sıfır Kesintili GPU İşlemleri
+    engine.uploadFrame(rawFrame)
+          .applyTemperature(0.15f)             // Sıcaklığı artır
+          .rgbToHsv()                          // İşlemler için HSV uzayına geç
+          .applyShadowsHighlights(0.2f, -0.1f) // Gölgeleri aç, parlamaları kıs
+          .applyGamma(1.1f)                    // Kontrastı ayarla
+          .hsvToRgb()                          // Ekrana/Diske basmak için RGB'ye dön
+          .downloadFrame(processedData.data());// Sonucu VRAM'den RAM'e çek
 
-    // 3. Ton Ayarı: Parlaklığı %20 artır
-    OperationWrapper::brightnessAdjustment(d_hsv_temp, width, height, channels, 0.2f);
-
-    // 4. Tekrar RGB'ye dönüştür
-    OperationWrapper::hsvToRgb(d_hsv_temp, d_rgb_output, width, height, channels);
-
-    // 5. Kaydet
-    myImage.updateDeviceData(d_rgb_output);
-    myImage.saveImage("assets/output_bright.png");
+    // 4. Hedefe Gönder ve Temizle
+    target.present(processedData.data(), engine.getWidth(), engine.getHeight(), engine.getChannels());
+    source.releaseFrame(rawFrame);
 
     return 0;
 }
+```
+
+## 💻 Kullanım Örneği 2: Gerçek Zamanlı Zero-Copy Interop Döngüsü (Real-Time Game Loop)
+
+Motor, CPU-GPU arası veri transferi dar boğazını aşmak için CUDA-GL Interoperability (Zero-Copy) mimarisini destekler. Aşağıdaki örnekte, VRAM'de işlenen pikseller işlemciye (RAM) hiç uğramadan doğrudan OpenGL PBO (Pixel Buffer Object) üzerinden monitöre fırlatılır.
+
+Bu sayede saniyede yüzlerce kare (FPS) işlenirken gecikme süreleri milisaniye seviyesine iner:
+
+```cpp
+#include <iostream>
+#include <chrono>
+#include <cmath>
+#include <iomanip> // std::setprecision için eklendi
+#include "io/StbImageSource.h"
+#include "io/GlfwInteropTarget.h"
+#include "EngineFactory.cuh"
+
+int main() {
+    std::cout << "[Main] ZERO-COPY Interop Motoru Baslatiliyor..." << std::endl;
+
+    StbImageSource source("assets/starwars.jpg");
+    unsigned char* rawFrame = source.grabNextFrame();
+    if (!rawFrame) return -1;
+
+    // Sıfır Gecikmeli Interop Monitörünü Başlat
+    GlfwInteropTarget target(source.getWidth(), source.getHeight(), source.getChannels(), "CudaVisionEngine - Zero Copy");
+
+    EngineFactory engine(source.getWidth(), source.getHeight(), source.getChannels());
+
+    auto t_start = std::chrono::high_resolution_clock::now();
+    int frameCount = 0;
+    float timeTracker = 0.0f;
+
+    // THE GAME LOOP
+    while (!target.shouldClose()) {
+        float dynamicTemp = std::sin(timeTracker) * 0.5f;
+        timeTracker += 0.02f;
+
+        // 1. İşlemleri GPU'da Yap (Fluent Interface)
+        engine.uploadFrame(rawFrame)
+              .applyTemperature(dynamicTemp)
+              .rgbToHsv()
+              .applyGamma(1.1f)
+              .hsvToRgb();
+
+        // 2. VRAM Kapısını Aç ve Hedef Adresi Al
+        unsigned char* d_pbo_vram_address = target.mapVRAM();
+
+        // 3. Pikselleri VRAM'den VRAM'e YAZ (CPU'ya kopyalamak yok!)
+        engine.copyToDeviceUchar(d_pbo_vram_address);
+
+        // 4. Kapıyı Kapat ve Monitöre Çiz
+        target.unmapAndRender();
+
+        // Performans ve Gecikme (Latency) Ölçümü
+        frameCount++;
+        if (frameCount % 100 == 0) {
+            auto t_end = std::chrono::high_resolution_clock::now();
+            double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+            
+            double avg_latency_ms = elapsed_ms / 100.0; // Kare başına düşen gecikme
+            double fps = 1000.0 / avg_latency_ms;       // Saniyedeki kare sayısı
+            
+            std::cout << "Guncel FPS: " << std::fixed << std::setprecision(1) << fps 
+                      << " | Gecikme: " << std::fixed << std::setprecision(2) << avg_latency_ms << " ms    \r" << std::flush;
+            
+            t_start = std::chrono::high_resolution_clock::now();
+        }
+    }
+
+    source.releaseFrame(rawFrame);
+    std::cout << "\nMotor basariyla kapatildi." << std::endl;
+    return 0;
+}
+
 ```

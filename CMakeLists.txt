@@ -11,6 +11,26 @@ set(CMAKE_CUDA_COMPILER "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.
 enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 
+# =========================================================================
+# 1. YÖNTEM: FetchContent İLE GLFW'Yİ OTOMATİK İNDİR VE DERLE (TAVSİYE EDİLEN)
+# =========================================================================
+include(FetchContent)
+FetchContent_Declare(
+        glfw
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.3.8 # Kararlı sürüm
+)
+# GLFW'nin testlerini ve örneklerini derlemeyi kapat (Hız kazanmak için)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(glfw)
+
+# OpenGL Kütüphanesini sistemden bul (GLFW pencere açar, OpenGL çizer)
+find_package(OpenGL REQUIRED)
+# =========================================================================
+
+
 # CUDA Mimarisi ayarı (native = senin ekran kartına uygun olanı seçer)
 set(CMAKE_CUDA_ARCHITECTURES "native")
 
@@ -41,8 +61,18 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/Kernels/ColorOperation.cu
         include/ColorOperation.cuh
         src/Kernels/ToneAdjustment.cu
-        include/ToneAdjustment.cuh)
+        include/ToneAdjustment.cuh
+        include/io/IDataSource.h
+        include/io/IRenderTarget.h
+        src/io/StbImageSource.cpp
+        include/io/StbImageSource.h
+        src/io/StbImageTarget.cpp
+        include/io/StbImageTarget.h
+        src/io/GlfwWindowTarget.cpp
+        include/io/GlfwWindowTarget.h
+        src/io/GlfwInteropTarget.cpp
+        include/io/GlfwInteropTarget.h)
 
 
 # Kütüphaneleri bağla
-target_link_libraries(CudaVisionEngine PRIVATE CUDA::cudart)
+target_link_libraries(CudaVisionEngine PRIVATE CUDA::cudart glfw OpenGL::GL)
