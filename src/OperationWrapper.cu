@@ -44,17 +44,6 @@ void OperationWrapper::denormalize(float* d_input, unsigned char* d_output, int 
     checkKernelError("Denormalize Image");
 }
 
-void OperationWrapper::sharpen(const float *input, float *output, int width, int height, int channels) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
-
-    ::sharpen<<<gridSize, blockSize>>>(input, output, width, height, channels);
-
-    checkKernelError("Convert RGB to HSV");
-
-    cudaDeviceSynchronize();
-}
-
 void OperationWrapper::smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize) {
     // 1. Blok Boyutlarını Belirle
     dim3 blockSize(16, 16);
@@ -233,6 +222,102 @@ void OperationWrapper::multiply(const float* d_A, const float* d_B, float* d_C, 
 
     checkKernelError("Matrix Multiply");
 }
+
+void OperationWrapper::applyConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel) {
+
+    dim3 threads(16, 16);
+    dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
+
+    // DÜZELTME BURADA: Namespace kullanarak çağırıyoruz!
+    Convolution::launchConvolution(input, output, width, height, channels, kernelSize, h_kernel, blocks, threads);
+
+    checkKernelError("Apply Convolution");
+    cudaDeviceSynchronize();
+}
+
+// ==========================================================
+// HAZIR KONVOLÜSYON FİLTRELERİ (PRESETLER)
+// ==========================================================
+
+// 1. Kutu Bulanıklaştırma (Box Blur - 3x3)
+void OperationWrapper::applyBoxBlur(const float* input, float* output, int width, int height, int channels) {
+    int kSize = 3;
+    float w = 1.0f / 9.0f; // Tüm piksellerin eşit ortalaması
+    float kernel[9] = {
+        w, w, w,
+        w, w, w,
+        w, w, w
+    };
+    applyConvolution(input, output, width, height, channels, kSize, kernel);
+}
+
+// 2. Keskinleştirme (Sharpen - 3x3)
+void OperationWrapper::applySharpen(const float* input, float* output, int width, int height, int channels) {
+    int kSize = 3;
+    // Merkezdeki pikseli çok parlat (5), etrafındakileri karart (-1)
+    float kernel[9] = {
+        0.0f, -1.0f,  0.0f,
+       -1.0f,  5.0f, -1.0f,
+        0.0f, -1.0f,  0.0f
+   };
+    applyConvolution(input, output, width, height, channels, kSize, kernel);
+}
+
+// 3. Kenar Bulma (Laplacian Edge Detection - 3x3)
+void OperationWrapper::applyEdgeDetection(const float* input, float* output, int width, int height, int channels) {
+    int kSize = 3;
+    // Sadece renk değişiminin (türev) olduğu, yani zıtlık olan sınır çizgilerini bulur
+    float kernel[9] = {
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  8.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f
+    };
+    applyConvolution(input, output, width, height, channels, kSize, kernel);
+}
+
+// 1. GAUSSIAN BLUR (5x5) - Canny'nin ilk adımıdır, Box Blur'dan çok daha kalitelidir
+void OperationWrapper::applyGaussianBlur5x5(const float* input, float* output, int width, int height, int channels) {
+    int kSize = 5;
+    float kernel[25] = {
+        1/273.f,  4/273.f,  7/273.f,  4/273.f, 1/273.f,
+        4/273.f, 16/273.f, 26/273.f, 16/273.f, 4/273.f,
+        7/273.f, 26/273.f, 41/273.f, 26/273.f, 7/273.f,
+        4/273.f, 16/273.f, 26/273.f, 16/273.f, 4/273.f,
+        1/273.f,  4/273.f,  7/273.f,  4/273.f, 1/273.f
+    };
+    applyConvolution(input, output, width, height, channels, kSize, kernel);
+}
+
+// 2. SOBEL X (Dikey Kenarlar)
+void OperationWrapper::applySobelX(const float* input, float* output, int width, int height, int channels) {
+    float kernel[9] = {
+        -1, 0, 1,
+        -2, 0, 2,
+        -1, 0, 1
+    };
+    applyConvolution(input, output, width, height, channels, 3, kernel);
+}
+
+// 3. SOBEL Y (Yatay Kenarlar)
+void OperationWrapper::applySobelY(const float* input, float* output, int width, int height, int channels) {
+    float kernel[9] = {
+        -1, -2, -1,
+         0,  0,  0,
+         1,  2,  1
+    };
+    applyConvolution(input, output, width, height, channels, 3, kernel);
+}
+
+// 4. EMBOSS (Kabartma Efekti)
+void OperationWrapper::applyEmboss(const float* input, float* output, int width, int height, int channels) {
+    float kernel[9] = {
+        -2, -1, 0,
+        -1,  1, 1,
+         0,  1, 2
+    };
+    applyConvolution(input, output, width, height, channels, 3, kernel);
+}
+
 
 void OperationWrapper::getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize) {
     dim3 block(TILE_SIZE, TILE_SIZE);

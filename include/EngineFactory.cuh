@@ -61,6 +61,13 @@ public:
     EngineFactory& applyTemperature(float temperature);
     EngineFactory& applyShadowsHighlights(float shadowAmount, float highlightAmount);
     EngineFactory& applyGamma(float gamma);
+
+    //
+    EngineFactory& applyBoxBlur();
+    EngineFactory& applySharpen();
+    EngineFactory& applyEdgeDetection();
+    EngineFactory& applyEmboss();
+
 };
 
 #endif //CUDAVISIONENGINE_ENGINEMANAGEMENT_H

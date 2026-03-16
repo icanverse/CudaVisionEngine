@@ -108,3 +108,27 @@ EngineFactory& EngineFactory::applyGamma(float gamma) {
     OperationWrapper::gammaCorrectionAdjustment(d_data, width, height, channels, gamma);
     return *this;
 }
+
+EngineFactory& EngineFactory::applyBoxBlur() {
+    OperationWrapper::applyBoxBlur(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data); // Sıfır maliyetle kopyalama!
+    return *this;
+}
+
+EngineFactory& EngineFactory::applySharpen() {
+    OperationWrapper::applySharpen(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data);
+    return *this;
+}
+
+EngineFactory& EngineFactory::applyEdgeDetection() {
+    OperationWrapper::applyEdgeDetection(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data);
+    return *this;
+}
+
+EngineFactory& EngineFactory::applyEmboss() {
+    OperationWrapper::applyEmboss(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data);
+    return *this;
+}

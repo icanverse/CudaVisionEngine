@@ -5,19 +5,14 @@
 #ifndef CUDAVISIONENGINE_CONVOLUTION_CUH
 #define CUDAVISIONENGINE_CONVOLUTION_CUH
 
-
+#define MAX_KERNEL_SIZE 11
 #define TILE_SIZE 16
-#define RADIUS 1
 
-
-__global__ void sharpen(const float* input, float* output, int width, int height, int channels);
-
-__global__ void smoothing(const float* A,float* Result, int size);
-__global__ void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);
-
-/// Sobel Filtresi Matrisleri
-__constant__ int Gx[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
-__constant__ int Gy[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+namespace Convolution {
+    // DİKKAT: Parametre sırası ve 'const' kelimeleri birebir aynı olmalı!
+    void launchConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel, dim3 blocks, dim3 threads);
+    void launchConvolution_withSharedMemory(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel, dim3 blocks, dim3 threads);
+}
 
 
 #endif //CUDAVISIONENGINE_CONVOLUTION_CUH

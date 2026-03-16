@@ -1,131 +1,113 @@
-//
-// Created by Can on 13.02.2026.
-//
-
 #include "../../include/Convolution.cuh"
 
-__global__ void applyConvulationKernel(const float* input, float* output, int width, int height) {
+__constant__ float c_kernel[MAX_KERNEL_SIZE * MAX_KERNEL_SIZE];
 
-}
 
-__global__ void sharpen(const float* input, float* output, int width, int height, int channels) {
-    unsigned int dx = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int dy = blockIdx.y * blockDim.y + threadIdx.y;
+__global__ void applyConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize) {
+    // Thread Hazırlığı
+    int dx = threadIdx.x;
+    int dy = threadIdx.y;
+    int tx = blockIdx.x * blockDim.x + dx;
+    int ty = blockIdx.y * blockDim.y + dy;
 
-    if (dx < width && dy < height) {
-        unsigned int base_index = (dy * width + dx) * channels;
+    // Paylaşımlı Bellek Hazırlığı
+    int radius = kernelSize / 2;
 
-        for (int c = 0; c < channels; ++c) {
+    // Paylaşımlı bellek genişliği (Örn: 16 + 2*1 = 18)
+    int sharedW = blockDim.x + 2 * radius;
 
-            // Alpha kanalıysa kopyala ve geç
-            if (c == 3) {
-                output[base_index + c] = input[base_index + c];
-                continue;
+    // Dinamik paylaşımlı bellek tanımı (Launch sırasında boyutu verilecek)
+    extern __shared__ float s_tile[];
+
+    for (int c = 0; c < channels; c++) {
+        for (int i = dy; i < sharedW; i += blockDim.y) {
+            for (int j = dx; j < sharedW; j += blockDim.x) {
+
+                // Global Memory'deki gerçek koordinat (Merkezden yarıçap kadar geriden başla)
+                int gx = blockIdx.x * blockDim.x + j - radius;
+                int gy = blockIdx.y * blockDim.y + i - radius;
+
+                gx = min(max(gx, 0), width - 1);
+                gy = min(max(gy, 0), height - 1);
+
+                s_tile[i * sharedW + j] = input[(gy * width + gx) * channels + c];
             }
+        }
 
+        __syncthreads();
+
+        if (tx < width && ty < height) {
             float sum = 0.0f;
 
-            // 3. Komşuları Gez (3x3 Matris)
-            for (int ky = -1; ky <= 1; ky++) {
-                for (int kx = -1; kx <= 1; kx++) {
+            for (int ky = -radius; ky <= radius; ky++) {
+                for (int kx = -radius; kx <= radius; kx++) {
 
-                    // DÜZELTME: Negatif olabilmeleri için 'int' kullanıyoruz
-                    int nx = dx + kx;
-                    int ny = dy + ky;
+                    float pixelVal = s_tile[(dy + radius + ky) * sharedW + (dx + radius + kx)];
 
-                    int clamped_x = max(0, min(nx, width - 1));
-                    int clamped_y = max(0, min(ny, height - 1));
-
-                    // GÖREV 3: Komşunun gerçek indeksi
-                    unsigned int neighbor_index = (clamped_y * width + clamped_x) * channels + c;
-
-                    // GÖREV 4 & 5: Ağırlığı belirle ve toplama ekle
-                    float weight;
-                    if (kx == 0 && ky == 0) {
-                        weight = 9.0f;  // Merkez pikseli çok güçlü parlat
-                    } else {
-                        weight = -1.0f; // Etrafındaki pikselleri çıkar (Kontrastı aç)
-                    }
-
-                    // Komşunun değerini ağırlıkla çarp ve toplama ekle
-                    sum += input[neighbor_index] * weight;
+                    int kernelIndex = (ky + radius) * kernelSize + (kx + radius);
+                    sum += pixelVal * c_kernel[kernelIndex];
                 }
             }
-
-            // GÖREV 6: Clamp ve Geri Yazma
-            // Keskinleştirme işlemi sınırları çok çabuk aşar, bu yüzden clamp şarttır.
-            output[base_index + c] = fminf(1.0f, fmaxf(0.0f, sum));
-        }
-    }
-}
-/// Sobel Kenar Filtresi Yöntemi --- Paylaşımlı Bellek Kullanıyor
-__global__ void sobel_edge_det(const float* A, float* Result, int width, int height) {
-    // Shared Mem
-    __shared__ float s_data[TILE_SIZE + 2 * RADIUS][TILE_SIZE + 2 * RADIUS];
-
-    //
-    unsigned int dx = threadIdx.x;
-    unsigned int dy = threadIdx.y;
-    unsigned int col = blockIdx.x * blockDim.x + dx;
-    unsigned int row = blockIdx.y * blockDim.y + dy;
-
-    int s_col = dx + RADIUS;
-    int s_row = dy + RADIUS;
-
-    if (col < width && row < height) {
-        s_data[s_row][s_col] = A[row * width + col];
-    } else {
-        s_data[s_row][s_col] = 0.0f; // Sınır dışı sıfır olsun
-    }
-
-    // Sol Halo
-    if (dx < RADIUS) {
-        if (col >= RADIUS) // Resmin en solundan taşmayalım
-            s_data[s_row][s_col - RADIUS] = A[row * width + (col - RADIUS)];
-        else
-            s_data[s_row][s_col - RADIUS] = 0.0f;
-    }
-
-    // Sağ Halo
-    if (dx >= blockDim.x - RADIUS) {
-        if (col + RADIUS < width) // Resmin en sağından taşmayalım
-            s_data[s_row][s_col + RADIUS] = A[row * width + (col + RADIUS)];
-        else
-            s_data[s_row][s_col + RADIUS] = 0.0f;
-    }
-
-    // Üst Halo
-    if (dy < RADIUS) {
-        if (row >= RADIUS)
-            s_data[s_row - RADIUS][s_col] = A[(row - RADIUS) * width + col];
-        else
-            s_data[s_row - RADIUS][s_col] = 0.0f;
-    }
-
-    // Alt Halo
-    if (dy >= blockDim.y - RADIUS) {
-        if (row + RADIUS < height)
-            s_data[s_row + RADIUS][s_col] = A[(row + RADIUS) * width + col];
-        else
-            s_data[s_row + RADIUS][s_col] = 0.0f;
-    }
-
-    __syncthreads();
-
-    if (col < width && row < height && col > 0 && row > 0 && col < width - 1 && row < height - 1) {
-        float sumX = 0, sumY = 0;
-
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                // DİKKAT: s_data indeksleri
-                float pixel = s_data[s_row + i][s_col + j];
-
-                // Not: Gx ve Gy global/constant memory'de tanımlı varsayıyoruz
-                sumX += pixel * Gx[i + 1][j + 1];
-                sumY += pixel * Gy[i + 1][j + 1];
-            }
+            output[(ty * width + tx) * channels + c] = sum;
         }
 
-        Result[row * width + col] = sqrtf(sumX * sumX + sumY * sumY);
+        __syncthreads();
     }
 }
+
+namespace Convolution {
+    void launchConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel, dim3 blocks, dim3 threads) {
+
+        size_t kernelBytes = kernelSize * kernelSize * sizeof(float);
+        cudaMemcpyToSymbol(c_kernel, h_kernel, kernelBytes);
+
+        int radius = kernelSize / 2;
+        int sharedDim = threads.x + 2 * radius;
+        size_t sharedMemSize = sharedDim * sharedDim * sizeof(float);
+
+        applyConvolution<<<blocks, threads, sharedMemSize>>>(input, output, width, height, channels, kernelSize);
+
+        cudaDeviceSynchronize();
+    }
+}
+
+///// Paylaşımlı Bellek Kullanmayan Konvülasyon İşlemi
+
+// __global__ void applyConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize) {
+//     int dx = threadIdx.x;
+//     int dy = threadIdx.y;
+//
+//     int tx = dx + blockDim.x * blockIdx.x;
+//     int ty = dy + blockDim.y * blockIdx.y;
+//
+//     if (tx < width && ty < height) {
+//
+//         int halfSize = kernelSize / 2;
+//         int radius = kernelSize / 2;
+//
+//         for (int c = 0; c < channels; c++) {
+//
+//             float sum = 0.0f;
+//
+//             for (int kx = -halfSize; kx <= halfSize; kx++) {
+//                 for (int ky = -halfSize; ky <= halfSize; ky++) {
+//                     int nx = min(max(tx + kx, 0), width - 1);
+//                     int ny = min(max(ty + ky, 0), height - 1);
+//
+//                     float pixelVal = input[(ny*width + nx) * channels + c];
+//
+//                     int kernelIndex = (ky + halfSize) * kernelSize + (kx + halfSize);
+//                     float weight = c_kernel[kernelIndex];
+//
+//                     sum += pixelVal * weight;
+//                 }
+//             }
+//
+//             output[(ty * width + tx) * channels + c] = sum;
+//         }
+//
+//     } else {
+//         return;
+//     }
+//
+// }

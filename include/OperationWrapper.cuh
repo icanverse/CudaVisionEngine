@@ -14,10 +14,17 @@ public:
     static void normalize(unsigned char* d_input, float* d_output, int width, int height);
     static void denormalize(float* d_input, unsigned char* d_output, int width, int height);
 
-    // Matris İşlemleri
+    // Matris İşlemleri ve Konvülasyon
     static void add(const float* d_A, const float* d_B, float* d_C, int size, bool useSharedMem = true);
     static void subtract(const float* d_A, const float* d_B, float* d_C, int size);
     static void multiply(const float* d_A, const float* d_B, float* d_C, int size);
+
+    // Konvülasyon ve Hazır Filtreler
+    static void applyConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel);
+    static void applyBoxBlur(const float* input, float* output, int width, int height, int channels);
+    static void applySharpen(const float* input, float* output, int width, int height, int channels);
+    static void applyEdgeDetection(const float* input, float* output, int width, int height, int channels);
+
 
     // Alt Matris Bulma (Kofaktör/Determinant hesapları için)
     static void getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize);
@@ -42,6 +49,11 @@ public:
     static void shadowsHighlightsAdjustment(float* d_hsv, int width, int height, int channels, float shadowAmount, float highlightAmount);
     static void temperatureAdjustment(float* d_rgb, int width, int height, int channels, float temperature);
     static void gammaCorrectionAdjustment(float* d_hsv, int width, int height, int channels, float gamma);
+    static void applyGaussianBlur5x5(const float* input, float* output, int width, int height, int channels);
+    static void applySobelX(const float* input, float* output, int width, int height, int channels);
+    static void applySobelY(const float* input, float* output, int width, int height, int channels);
+    static void applyEmboss(const float* input, float* output, int width, int height, int channels);
+
 
 
 

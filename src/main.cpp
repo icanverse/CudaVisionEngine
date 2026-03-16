@@ -23,27 +23,31 @@ int main() {
     float timeTracker = 0.0f;
 
     // THE GAME LOOP
+    // THE GAME LOOP
     while (!target.shouldClose()) {
-        float dynamicTemp = std::sin(timeTracker) * 0.5f;
+        // Dinamik değerlerimizi hesaplayalım
+        // Sinüs dalgası -1 ile 1 arası döner, biz bunu 1.5 merkezli (0.5 - 2.5) Gamma'ya çevirelim
+        float dynamicGamma = 1.5f + std::sin(timeTracker) * 1.0f;
         timeTracker += 0.02f;
 
         // 1. İşlemleri GPU'da Yap (Fluent Interface)
         engine.uploadFrame(rawFrame)
-              .applyTemperature(dynamicTemp)
-              .rgbToHsv()
-              .applyGamma(1.1f)
-              .hsvToRgb();
+              .applyBoxBlur()       // Gürültüyü temizle
+              .applyEdgeDetection() // Kenarları bul (Neon etkisi)
+              .applySharpen()
+                  .applyEmboss()          // Çizgileri belirginleştir
+              .applyGamma(dynamicGamma); // NABIZ ETKİSİ: Dinamik parlaklık ve kontrast
 
         // 2. VRAM Kapısını Aç ve Hedef Adresi Al
         unsigned char* d_pbo_vram_address = target.mapVRAM();
 
-        // 3. Pikselleri VRAM'den VRAM'e YAZ (CPU'ya kopyalamak yok!)
+        // 3. Pikselleri VRAM'den VRAM'e YAZ
         engine.copyToDeviceUchar(d_pbo_vram_address);
 
         // 4. Kapıyı Kapat ve Monitöre Çiz
         target.unmapAndRender();
 
-        // Performans ve Gecikme (Latency) Ölçümü
+        // Performans takibi aynı kalıyor...
         frameCount++;
         if (frameCount % 100 == 0) {
             auto t_end = std::chrono::high_resolution_clock::now();
