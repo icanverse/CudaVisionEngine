@@ -14,10 +14,19 @@ public:
     static void normalize(unsigned char* d_input, float* d_output, int width, int height);
     static void denormalize(float* d_input, unsigned char* d_output, int width, int height);
 
-    // Matris İşlemleri ve Konvülasyon
+    // Renk Uzayı
+    static void rgbToHsv(const float* d_input, float* d_output, int width, int height, int channels);
+    static void hsvToRgb(const float* A, float* Result, int width, int height, int chanel);
+    static void rgbToYuv(const float* A, float* Result, int width, int height, int channel);
+    static void yuvToRgb(const float* A, float* Result, int width, int height, int channels);
+
+    // Matris İşlemleri
     static void add(const float* d_A, const float* d_B, float* d_C, int size, bool useSharedMem = true);
     static void subtract(const float* d_A, const float* d_B, float* d_C, int size);
     static void multiply(const float* d_A, const float* d_B, float* d_C, int size);
+
+    // Alt Matris Bulma (Kofaktör / Determinant hesapları için)
+    static void getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize);
 
     // Konvülasyon ve Hazır Filtreler
     static void applyConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel);
@@ -25,20 +34,10 @@ public:
     static void applySharpen(const float* input, float* output, int width, int height, int channels);
     static void applyEdgeDetection(const float* input, float* output, int width, int height, int channels);
 
-
-    // Alt Matris Bulma (Kofaktör/Determinant hesapları için)
-    static void getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize);
-
     // Blur İşlemi
-
-    static void sharpen(const float* input, float* output, int width, int height, int channels);
     static void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);
 
-    // Renk Uzayı
-    static void rgbToHsv(const float* d_input, float* d_output, int width, int height, int channels);
-    static void hsvToRgb(const float* A, float* Result, int width, int height, int chanel);
-
-    // Renk Uzayına Bağlı İşlemler
+    // Renk Uzayına Bağlı Hazır Gelişmiş İşlemler
     static void isolateColor(float* d_hsv, int width, int height, int channels, float targetHue, float tolerance);
     static void colorReplacement(float* d_hsv, int width, int height, int channels, float targetHue, float tolerance, float replacementHue);
 
@@ -53,6 +52,7 @@ public:
     static void applySobelX(const float* input, float* output, int width, int height, int channels);
     static void applySobelY(const float* input, float* output, int width, int height, int channels);
     static void applyEmboss(const float* input, float* output, int width, int height, int channels);
+
 
 
 

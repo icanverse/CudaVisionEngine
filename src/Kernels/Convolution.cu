@@ -7,6 +7,7 @@ __global__ void applyConvolution(const float* input, float* output, int width, i
     // Thread Hazırlığı
     int dx = threadIdx.x;
     int dy = threadIdx.y;
+
     int tx = blockIdx.x * blockDim.x + dx;
     int ty = blockIdx.y * blockDim.y + dy;
 

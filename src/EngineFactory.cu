@@ -5,9 +5,7 @@
 #include "EngineFactory.cuh"
 #include "OperationWrapper.cuh"
 
-// DİKKAT: stb_image.h ve stb_image_write.h TAMAMEN SİLİNDİ!
-
-// 1. TERTEMİZ CONSTRUCTOR (Sadece Bellek Ayırır)
+// Constructor sadece Bellek Ayırır
 EngineFactory::EngineFactory(int w, int h, int c) : width(w), height(h), channels(c), d_data(nullptr), d_temp_data(nullptr) {
     totalElementCount = width * height * channels;
     allocateMemory();
@@ -80,7 +78,13 @@ void EngineFactory::downloadFrame(unsigned char* cpu_data) {
     cudaFree(d_output_uchar);
 }
 
-// --- AKICI ARAYÜZ (FLUENT INTERFACE) FONKSİYONLARI ---
+///
+/// >>> Akıcı Arayüz -- Fluent Interface Mimarisi için
+///
+
+// >
+// Renk Uzayı Dönüşümleri
+//
 
 EngineFactory& EngineFactory::rgbToHsv() {
     OperationWrapper::rgbToHsv(d_data, d_temp_data, width, height, channels);
@@ -94,6 +98,21 @@ EngineFactory& EngineFactory::hsvToRgb() {
     return *this;
 }
 
+EngineFactory& EngineFactory::rgbToYuv() {
+    OperationWrapper::rgbToYuv(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data);
+    return *this;
+}
+
+EngineFactory& EngineFactory::yuvToRgb() {
+    OperationWrapper::yuvToRgb(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data);
+    return *this;
+}
+
+
+
+
 EngineFactory& EngineFactory::applyTemperature(float temperature) {
     OperationWrapper::temperatureAdjustment(d_data, width, height, channels, temperature);
     return *this;
@@ -106,6 +125,12 @@ EngineFactory& EngineFactory::applyShadowsHighlights(float shadowAmount, float h
 
 EngineFactory& EngineFactory::applyGamma(float gamma) {
     OperationWrapper::gammaCorrectionAdjustment(d_data, width, height, channels, gamma);
+    return *this;
+}
+
+EngineFactory& EngineFactory::applyEmboss() {
+    OperationWrapper::applyEmboss(d_data, d_temp_data, width, height, channels);
+    std::swap(d_data, d_temp_data);
     return *this;
 }
 
@@ -127,8 +152,3 @@ EngineFactory& EngineFactory::applyEdgeDetection() {
     return *this;
 }
 
-EngineFactory& EngineFactory::applyEmboss() {
-    OperationWrapper::applyEmboss(d_data, d_temp_data, width, height, channels);
-    std::swap(d_data, d_temp_data);
-    return *this;
-}

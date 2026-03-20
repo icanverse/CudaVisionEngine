@@ -99,6 +99,28 @@ void OperationWrapper::hsvToRgb(const float* d_input, float* d_output, int width
     cudaDeviceSynchronize();
 }
 
+void OperationWrapper::rgbToYuv(const float *A, float *Result, int width, int height, int channel) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::rgbToYuv<<<gridSize, blockSize>>>(A, Result, width, height, channel);
+
+    checkKernelError("Convert RGB to YUV");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::yuvToRgb(const float *A, float *Result, int width, int height, int channels) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::yuvToRgb<<<gridSize, blockSize>>>(A, Result, width, height, channels);
+
+    checkKernelError("Convert YUV to RGB");
+
+    cudaDeviceSynchronize();
+}
+
 void OperationWrapper::isolateColor(float *d_hsv, int width, int height, int channels, float targetHue, float tolerance) {
     dim3 gridSize, blockSize;
     calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!

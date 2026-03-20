@@ -112,3 +112,56 @@ __global__ void hsvToRgb(const float* A, float* Result, int width, int height, i
         }
     }
 }
+
+__global__ void rgbToYuv(const float* A, float* Result, int width, int height, int channel) {
+    unsigned int tx = threadIdx.x + blockDim.x * blockIdx.x;
+    unsigned int ty = threadIdx.y + blockDim.y * blockIdx.y;
+
+    unsigned int dx = tx + blockDim.x * blockIdx.x;
+    unsigned int dy = ty + blockDim.y * blockIdx.y;
+
+    if (dx < width && dy < height) {
+        unsigned int index = (dx + dy * width) * channel;
+
+        float r = A[index];
+        float g = A[index + 1];
+        float b = A[index + 2];
+
+        float y = 0.299*r + 0.587*g + 0.114*b;
+        float u = -0.1687*r - 0.3313*g + 0.5*b + 0.5;
+        float v = 0.5*r - 0.4187*g - 0.0813*b + 0.5;
+
+        y = fminf(fmaxf(y, 0.0f), 255.0f);
+        u = fminf(fmaxf(u, 0.0f), 255.0f);
+        v = fminf(fmaxf(v, 0.0f), 255.0f);
+
+        Result[index]     = y;
+        Result[index + 1] = u;
+        Result[index + 2] = v;
+
+
+    }
+}
+
+__global__ void yuvToRgb(const float* A, float* Result, int width, int height, int channels) {
+    unsigned int dx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int dy = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (dx < width && dy < height) {
+        // 2. Bellek indeksi (Interleaved YUVYUV...)
+        unsigned int index = (dy * width + dx) * channels;
+
+        float y = A[index];
+        float u = A[index + 1] - 0.5f;
+        float v = A[index + 2] - 0.5f;
+
+        float r = y + 1.402f * v;
+        float g = y - 0.344136f * u - 0.714136f * v;
+        float b = y + 1.772f * u;
+
+        // Clamping
+        Result[index]     = fminf(fmaxf(r, 0.0f), 255.0f);
+        Result[index + 1] = fminf(fmaxf(g, 0.0f), 255.0f);
+        Result[index + 2] = fminf(fmaxf(b, 0.0f), 255.0f);
+    }
+}

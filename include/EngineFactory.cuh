@@ -56,6 +56,8 @@ public:
     // Renk Uzayı Dönüşümleri (Ping-Pong kullanır)
     EngineFactory& rgbToHsv();
     EngineFactory& hsvToRgb();
+    EngineFactory& rgbToYuv();
+    EngineFactory& yuvToRgb();
 
     // Filtreler (In-place çalışır)
     EngineFactory& applyTemperature(float temperature);

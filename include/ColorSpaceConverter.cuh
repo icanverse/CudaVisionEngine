@@ -8,5 +8,8 @@
 __global__ void rgbToHsv(const float* A, float* Result, int width, int height, int chanel);
 __global__ void hsvToRgb(const float* A, float* Result, int width, int height, int chanel);
 
+__global__ void rgbToYuv(const float* A, float* Result, int width, int height, int channel);
+__global__ void yuvToRgb(const float* A, float* Result, int width, int height, int channels);
+
 
 #endif //CUDAVISIONENGINE_COLORSPACECONVERTER_CUH
