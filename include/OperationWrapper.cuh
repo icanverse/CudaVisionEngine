@@ -19,6 +19,7 @@ public:
     static void hsvToRgb(const float* A, float* Result, int width, int height, int chanel);
     static void rgbToYuv(const float* A, float* Result, int width, int height, int channel);
     static void yuvToRgb(const float* A, float* Result, int width, int height, int channels);
+    static void kernelNV12toRGB(const unsigned char* pNV12, unsigned char* pRGB, int width, int height, int pitch);
 
     // Matris İşlemleri
     static void add(const float* d_A, const float* d_B, float* d_C, int size, bool useSharedMem = true);
@@ -52,9 +53,6 @@ public:
     static void applySobelX(const float* input, float* output, int width, int height, int channels);
     static void applySobelY(const float* input, float* output, int width, int height, int channels);
     static void applyEmboss(const float* input, float* output, int width, int height, int channels);
-
-
-
 
 
 

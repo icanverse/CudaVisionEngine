@@ -5,6 +5,7 @@
 #ifndef CUDAVISIONENGINE_ENGINEMANAGEMENT_H
 #define CUDAVISIONENGINE_ENGINEMANAGEMENT_H
 
+#include <cuda.h>
 #include <utility> // std::swap için eklendi
 #include <cuda_runtime.h>
 
@@ -53,11 +54,16 @@ public:
     // YENİ: Veriyi CPU'ya indirmeden, doğrudan başka bir VRAM adresine (Interop için) yazar
     void copyToDeviceUchar(unsigned char* d_dest_uchar);
 
+    // Geriye referans dönüyoruz ki zincirleme (fluent) devam edebilsin
+    EngineFactory& loadNV12DevicePointer(CUdeviceptr d_nv12, int pitch);
+
     // Renk Uzayı Dönüşümleri (Ping-Pong kullanır)
     EngineFactory& rgbToHsv();
     EngineFactory& hsvToRgb();
     EngineFactory& rgbToYuv();
     EngineFactory& yuvToRgb();
+    EngineFactory& kernelNV12toRGB();
+    EngineFactory& loadNV12DevicePointer();
 
     // Filtreler (In-place çalışır)
     EngineFactory& applyTemperature(float temperature);
@@ -69,6 +75,10 @@ public:
     EngineFactory& applySharpen();
     EngineFactory& applyEdgeDetection();
     EngineFactory& applyEmboss();
+
+    // Renk Uzayına Bağlı Hazır Gelişmiş İşlemler
+    EngineFactory& isolateColor(float targetHue, float tolerance);
+    EngineFactory& colorReplacement(float targetHue, float tolerance, float replacementHue);
 
 };
 

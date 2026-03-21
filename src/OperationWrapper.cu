@@ -121,6 +121,18 @@ void OperationWrapper::yuvToRgb(const float *A, float *Result, int width, int he
     cudaDeviceSynchronize();
 }
 
+void OperationWrapper::kernelNV12toRGB(const unsigned char *pNV12, unsigned char *pRGB, int width, int height, int pitch) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::kernelNV12toRGB<<<gridSize, blockSize>>>(pNV12, pRGB, width, height, pitch);
+
+    checkKernelError("Convert YUV to RGB (NV12)");
+
+    cudaDeviceSynchronize();
+}
+
+
 void OperationWrapper::isolateColor(float *d_hsv, int width, int height, int channels, float targetHue, float tolerance) {
     dim3 gridSize, blockSize;
     calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!

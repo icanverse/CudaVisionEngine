@@ -82,6 +82,7 @@ void EngineFactory::downloadFrame(unsigned char* cpu_data) {
 /// >>> Akıcı Arayüz -- Fluent Interface Mimarisi için
 ///
 
+
 // >
 // Renk Uzayı Dönüşümleri
 //
@@ -109,6 +110,43 @@ EngineFactory& EngineFactory::yuvToRgb() {
     std::swap(d_data, d_temp_data);
     return *this;
 }
+
+EngineFactory& EngineFactory::loadNV12DevicePointer(CUdeviceptr d_nv12, int pitch) {
+    // 1. Donanımdan gelen 8-bit (unsigned char) RGB verisini tutmak için geçici VRAM alanı ayır
+    unsigned char* d_temp_uchar;
+    size_t ucharSizeBytes = totalElementCount * sizeof(unsigned char);
+    cudaMalloc(&d_temp_uchar, ucharSizeBytes);
+
+    // 2. NVDEC'ten gelen NV12'yi 8-bit RGB olarak d_temp_uchar içine çöz
+    // (DİKKAT: '.' yerine '::' kullandık)
+    OperationWrapper::kernelNV12toRGB((const unsigned char*)d_nv12, d_temp_uchar, width, height, pitch);
+
+    // 3. SİHİRLİ DOKUNUŞ: 8-bit RGB'yi senin motorunun anladığı Float (0.0f - 1.0f) formatına dönüştür!
+    // (Tıpkı uploadFrame metodunda yaptığın gibi)
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (totalElementCount + threadsPerBlock - 1) / threadsPerBlock;
+    k_normalizeImage<<<blocksPerGrid, threadsPerBlock>>>(d_temp_uchar, d_data, totalElementCount);
+    cudaDeviceSynchronize();
+
+    // 4. Geçici 8-bit alanını temizle (Memory Leak olmaması için)
+    cudaFree(d_temp_uchar);
+
+    // Zincirleme reaksiyon (Fluent) devam etsin diye kendini dön
+    return *this;
+}
+
+// Renk Uzayına Bağlı Hazır Gelişmiş İşlemler
+
+EngineFactory& EngineFactory::isolateColor(float targetHue, float tolerance) {
+    OperationWrapper::isolateColor(d_data, width, height, channels, targetHue, tolerance);
+    return *this;
+}
+
+EngineFactory &EngineFactory::colorReplacement(float targetHue, float tolerance, float replacementHue) {
+    OperationWrapper::colorReplacement(d_data, width, height, channels, targetHue, tolerance,  replacementHue);
+    return *this;
+}
+
 
 
 

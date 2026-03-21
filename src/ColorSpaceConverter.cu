@@ -165,3 +165,29 @@ __global__ void yuvToRgb(const float* A, float* Result, int width, int height, i
         Result[index + 2] = fminf(fmaxf(b, 0.0f), 255.0f);
     }
 }
+
+
+// NVDEC'in bize verdiği NV12 formatını motorun RGB Float formatına çeviren köprü
+// Artık çıkışımız pRGB (unsigned char*) yani tam senin PBO havuzunun istediği format!
+__global__ void kernelNV12toRGB(const unsigned char* pNV12, unsigned char* pRGB, int width, int height, int pitch) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= width || y >= height) return;
+
+    unsigned char Y = pNV12[y * pitch + x];
+    const unsigned char* pUV = pNV12 + (height * pitch);
+    unsigned char U = pUV[(y / 2) * pitch + (x / 2) * 2];
+    unsigned char V = pUV[(y / 2) * pitch + (x / 2) * 2 + 1];
+
+    float r = Y + 1.402f * (V - 128.0f);
+    float g = Y - 0.344f * (U - 128.0f) - 0.714f * (V - 128.0f);
+    float b = Y + 1.772f * (U - 128.0f);
+
+    int outIdx = (y * width + x) * 3;
+
+    // Float hesaplamayı yapıp, güvenle 8-bit unsigned char'a dönüştürüyoruz
+    pRGB[outIdx]     = (unsigned char)fminf(fmaxf(r, 0.0f), 255.0f);
+    pRGB[outIdx + 1] = (unsigned char)fminf(fmaxf(g, 0.0f), 255.0f);
+    pRGB[outIdx + 2] = (unsigned char)fminf(fmaxf(b, 0.0f), 255.0f);
+}
