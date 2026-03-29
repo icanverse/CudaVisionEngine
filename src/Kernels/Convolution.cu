@@ -1,4 +1,4 @@
-#include "../../include/Convolution.cuh"
+#include "../../include/Kernels/Convolution.cuh"
 
 __constant__ float c_kernel[MAX_KERNEL_SIZE * MAX_KERNEL_SIZE];
 
@@ -56,6 +56,56 @@ __global__ void applyConvolution(const float* input, float* output, int width, i
     }
 }
 
+
+__global__ void applyConvolutionVChannel(const float* input, float* output, int width, int height, int channels, int kernelSize) {
+    int dx = threadIdx.x;
+    int dy = threadIdx.y;
+
+    int tx = blockIdx.x * blockDim.x + dx;
+    int ty = blockIdx.y * blockDim.y + dy;
+
+    int radius = kernelSize / 2;
+    int sharedW = blockDim.x + 2 * radius;
+
+    extern __shared__ float s_tile[];
+
+    int v_c = 2;
+
+    for (int i = dy; i < sharedW; i += blockDim.y) {
+        for (int j = dx; j < sharedW; j += blockDim.x) {
+            int gx = blockIdx.x * blockDim.x + j - radius;
+            int gy = blockIdx.y * blockDim.y + i - radius;
+
+            gx = min(max(gx, 0), width - 1);
+            gy = min(max(gy, 0), height - 1);
+
+            s_tile[i * sharedW + j] = input[(gy * width + gx) * channels + v_c];
+        }
+    }
+
+    __syncthreads();
+
+    if (tx < width && ty < height) {
+        float sum = 0.0f;
+
+        for (int ky = -radius; ky <= radius; ky++) {
+            for (int kx = -radius; kx <= radius; kx++) {
+                float pixelVal = s_tile[(dy + radius + ky) * sharedW + (dx + radius + kx)];
+                int kernelIndex = (ky + radius) * kernelSize + (kx + radius);
+                sum += pixelVal * c_kernel[kernelIndex];
+            }
+        }
+
+        int globalIdx = (ty * width + tx) * channels;
+
+        output[globalIdx + 0] = input[globalIdx + 0]; // H
+        output[globalIdx + 1] = input[globalIdx + 1]; // S
+
+        output[globalIdx + 2] = sum;
+    }
+
+}
+
 namespace Convolution {
     void launchConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel, dim3 blocks, dim3 threads) {
 
@@ -70,6 +120,23 @@ namespace Convolution {
 
         cudaDeviceSynchronize();
     }
+
+    void launchConvolutionVChannel(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel, dim3 blocks, dim3 threads) {
+
+        size_t kernelBytes = kernelSize * kernelSize * sizeof(float);
+        cudaMemcpyToSymbol(c_kernel, h_kernel, kernelBytes);
+
+        int radius = kernelSize / 2;
+
+        int sharedDimX = threads.x + 2 * radius;
+        int sharedDimY = threads.y + 2 * radius;
+        size_t sharedMemSize = sharedDimX * sharedDimY * sizeof(float);
+
+        applyConvolutionVChannel<<<blocks, threads, sharedMemSize>>>(input, output, width, height, channels, kernelSize);
+
+        cudaDeviceSynchronize();
+    }
+
 }
 
 ///// Paylaşımlı Bellek Kullanmayan Konvülasyon İşlemi

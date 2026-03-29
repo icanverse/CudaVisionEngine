@@ -1,16 +1,15 @@
-//
-// Created by Can on 13.02.2026.
-//
-
 #include "OperationWrapper.cuh"
-#include "ElementaryMatrixOp.cuh"
-#include "Smoothing.cuh"
+#include "../../include/Kernels/ElementaryMatrixOp.cuh"
+#include "../../include/Kernels/Smoothing.cuh"
 #include "ColorSpaceConverter.cuh"
 #include <cstdio>
 
-#include "ColorOperation.cuh"
-#include "ToneAdjustment.cuh"
-#include "Convolution.cuh"
+#include "../../include/Kernels/ColorOperation.cuh"
+#include "../../include/Kernels/ToneAdjustment.cuh"
+#include "../../include/Kernels/Convolution.cuh"
+#include "Kernels/Reduction.cuh"
+#include "Kernels/LogTransformation.cuh"
+#include "Kernels/Normalization.cuh"
 
 void OperationWrapper::calculateGrid(int width, int height, dim3& gridSize, dim3& blockSize) {
     blockSize = dim3(16, 16);
@@ -44,35 +43,50 @@ void OperationWrapper::denormalize(float* d_input, unsigned char* d_output, int 
     checkKernelError("Denormalize Image");
 }
 
+void OperationWrapper::retinexNormalize(float *input, const float *global_min, const float *global_max, int width, int height, int channels) {
+    int total_pixels = width * height;
+
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::retinexNormalize<<<gridSize, blockSize>>>(input, global_min, global_max,total_pixels, channels);
+
+    checkKernelError("Retinex Normalize");
+}
+
+void OperationWrapper::k_MinMaxReduction(const float *input, float *global_min, float *global_max, int width, int height, int channels) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    int threads = 256;
+    int total_pixels = width * height;
+    int blocks = (total_pixels + threads - 1) / threads;
+    size_t sharedMemSize = 2 * threads * sizeof(float);
+
+    ::k_MinMaxReduction<<<blocks, threads, sharedMemSize>>>(input, global_min, global_max, width, height, channels);
+
+    checkKernelError("MinMaxReduction");
+}
+
 void OperationWrapper::smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize) {
-    // 1. Blok Boyutlarını Belirle
     dim3 blockSize(16, 16);
 
-    // 2. Izgara (Grid) Boyutlarını Hesapla
     dim3 gridSize(
         (width + blockSize.x - 1) / blockSize.x,
         (height + blockSize.y - 1) / blockSize.y
     );
 
-    // --- KRİTİK DÜZELTME BAŞLANGICI ---
-
-    // 3. Shared Memory Boyutunu Hesapla
-    // Kernel içinde kullandığımız formül: (Tile + 2*Radius) * (Tile + 2*Radius)
     int radius = kernelSize / 2;
     size_t sharedMemSize = (blockSize.x + 2 * radius) * (blockSize.y + 2 * radius) * sizeof(float);
 
-    // 4. Kernel'ı Başlat (3. parametre olarak sharedMemSize eklendi)
     ::smoothing2D<<<gridSize, blockSize, sharedMemSize>>>(A, Result, width, height, channels, kernelSize);
 
-    // --- KRİTİK DÜZELTME BİTİŞİ ---
 
-    // 5. Hata Kontrolü
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
         printf("CUDA Error in smoothing2D: %s\n", cudaGetErrorString(err));
     }
 
-    // Kernel bitene kadar CPU'yu beklet (Debugging için iyidir)
     cudaDeviceSynchronize();
 }
 
@@ -132,7 +146,7 @@ void OperationWrapper::kernelNV12toRGB(const unsigned char *pNV12, unsigned char
     cudaDeviceSynchronize();
 }
 
-
+/// > Color Op
 void OperationWrapper::isolateColor(float *d_hsv, int width, int height, int channels, float targetHue, float tolerance) {
     dim3 gridSize, blockSize;
     calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
@@ -154,6 +168,21 @@ void OperationWrapper::colorReplacement(float *d_hsv, int width, int height, int
 
     cudaDeviceSynchronize();
 }
+
+/// Dönüşümler
+
+void OperationWrapper::logTransformation(float *input, float* output, int width, int height, int channels) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::logTransformationVChannel<<<gridSize, blockSize>>>(input, output, width, height, channels);
+
+    checkKernelError("Log Dönüşüm");
+
+    cudaDeviceSynchronize();
+}
+
+/// Tone Adj
 
 void OperationWrapper::brightnessAdjustment(float *d_hsv, int width, int height, int channels, float value) {
     dim3 gridSize, blockSize;
@@ -227,13 +256,9 @@ void OperationWrapper::add(const float* d_A, const float* d_B, float* d_C, int s
     dim3 block(TILE_SIZE, TILE_SIZE);
     dim3 grid((size + block.x - 1) / block.x, (size + block.y - 1) / block.y);
 
-    if (useSharedMem) {
-        // op_control = true (Toplama)
-       // matrix_add_with_sharedmem<<<grid, block>>>(d_A, d_B, d_C, size, true);
-    } else {
-        // Naive versiyon
-        matrix_add<<<grid, block>>>(d_A, d_B, d_C, size);
-    }
+
+    ::add<<<grid, block>>>(d_A, d_B, d_C, size);
+
 
     checkKernelError("Matrix Add");
 }
@@ -242,8 +267,7 @@ void OperationWrapper::subtract(const float* d_A, const float* d_B, float* d_C, 
     dim3 block(TILE_SIZE, TILE_SIZE);
     dim3 grid((size + block.x - 1) / block.x, (size + block.y - 1) / block.y);
 
-    // op_control = false (Çıkarma) - Sadece shared mem kernelinde implemente edilmiş
-    //matrix_add_with_sharedmem<<<grid, block>>>(d_A, d_B, d_C, size, false);
+
 
     checkKernelError("Matrix Subtract");
 }
@@ -252,7 +276,7 @@ void OperationWrapper::multiply(const float* d_A, const float* d_B, float* d_C, 
     dim3 block(TILE_SIZE, TILE_SIZE);
     dim3 grid((size + block.x - 1) / block.x, (size + block.y - 1) / block.y);
 
-    matrix_mul<<<grid, block>>>(d_A, d_B, d_C, size);
+    mul<<<grid, block>>>(d_A, d_B, d_C, size);
 
     checkKernelError("Matrix Multiply");
 }
@@ -262,18 +286,23 @@ void OperationWrapper::applyConvolution(const float* input, float* output, int w
     dim3 threads(16, 16);
     dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
 
-    // DÜZELTME BURADA: Namespace kullanarak çağırıyoruz!
     Convolution::launchConvolution(input, output, width, height, channels, kernelSize, h_kernel, blocks, threads);
 
     checkKernelError("Apply Convolution");
     cudaDeviceSynchronize();
 }
 
-// ==========================================================
-// HAZIR KONVOLÜSYON FİLTRELERİ (PRESETLER)
-// ==========================================================
+void OperationWrapper::applyConvolutionVChannel(const float *input, float *output, int width, int height, int channels, int kernelSize, const float* h_kernel) {
+    dim3 threads(16, 16);
+    dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
 
-// 1. Kutu Bulanıklaştırma (Box Blur - 3x3)
+
+    Convolution::launchConvolutionVChannel(input, output, width, height, channels, kernelSize, h_kernel, blocks, threads);
+
+    checkKernelError("Apply Convolution");
+    cudaDeviceSynchronize();
+}
+
 void OperationWrapper::applyBoxBlur(const float* input, float* output, int width, int height, int channels) {
     int kSize = 3;
     float w = 1.0f / 9.0f; // Tüm piksellerin eşit ortalaması
@@ -285,10 +314,8 @@ void OperationWrapper::applyBoxBlur(const float* input, float* output, int width
     applyConvolution(input, output, width, height, channels, kSize, kernel);
 }
 
-// 2. Keskinleştirme (Sharpen - 3x3)
 void OperationWrapper::applySharpen(const float* input, float* output, int width, int height, int channels) {
     int kSize = 3;
-    // Merkezdeki pikseli çok parlat (5), etrafındakileri karart (-1)
     float kernel[9] = {
         0.0f, -1.0f,  0.0f,
        -1.0f,  5.0f, -1.0f,
@@ -297,10 +324,8 @@ void OperationWrapper::applySharpen(const float* input, float* output, int width
     applyConvolution(input, output, width, height, channels, kSize, kernel);
 }
 
-// 3. Kenar Bulma (Laplacian Edge Detection - 3x3)
 void OperationWrapper::applyEdgeDetection(const float* input, float* output, int width, int height, int channels) {
     int kSize = 3;
-    // Sadece renk değişiminin (türev) olduğu, yani zıtlık olan sınır çizgilerini bulur
     float kernel[9] = {
         -1.0f, -1.0f, -1.0f,
         -1.0f,  8.0f, -1.0f,
@@ -309,7 +334,6 @@ void OperationWrapper::applyEdgeDetection(const float* input, float* output, int
     applyConvolution(input, output, width, height, channels, kSize, kernel);
 }
 
-// 1. GAUSSIAN BLUR (5x5) - Canny'nin ilk adımıdır, Box Blur'dan çok daha kalitelidir
 void OperationWrapper::applyGaussianBlur5x5(const float* input, float* output, int width, int height, int channels) {
     int kSize = 5;
     float kernel[25] = {
@@ -322,7 +346,6 @@ void OperationWrapper::applyGaussianBlur5x5(const float* input, float* output, i
     applyConvolution(input, output, width, height, channels, kSize, kernel);
 }
 
-// 2. SOBEL X (Dikey Kenarlar)
 void OperationWrapper::applySobelX(const float* input, float* output, int width, int height, int channels) {
     float kernel[9] = {
         -1, 0, 1,
@@ -332,7 +355,6 @@ void OperationWrapper::applySobelX(const float* input, float* output, int width,
     applyConvolution(input, output, width, height, channels, 3, kernel);
 }
 
-// 3. SOBEL Y (Yatay Kenarlar)
 void OperationWrapper::applySobelY(const float* input, float* output, int width, int height, int channels) {
     float kernel[9] = {
         -1, -2, -1,
@@ -342,7 +364,6 @@ void OperationWrapper::applySobelY(const float* input, float* output, int width,
     applyConvolution(input, output, width, height, channels, 3, kernel);
 }
 
-// 4. EMBOSS (Kabartma Efekti)
 void OperationWrapper::applyEmboss(const float* input, float* output, int width, int height, int channels) {
     float kernel[9] = {
         -2, -1, 0,
@@ -350,6 +371,28 @@ void OperationWrapper::applyEmboss(const float* input, float* output, int width,
          0,  1, 2
     };
     applyConvolution(input, output, width, height, channels, 3, kernel);
+}
+
+void OperationWrapper::applyGaussianBlurVChannel(const float* input, float* output, int width, int height, int channels) {
+    int kSize = 31;
+    float kernel[961];
+
+    float sigma = 5.0f;  // büyük surround için
+    int half = kSize / 2;
+    float sum = 0.0f;
+
+    for (int y = -half; y <= half; y++) {
+        for (int x = -half; x <= half; x++) {
+            float val = expf(-(x*x + y*y) / (2.0f * sigma * sigma));
+            kernel[(y + half) * kSize + (x + half)] = val;
+            sum += val;
+        }
+    }
+    for (int i = 0; i < kSize * kSize; i++) {
+        kernel[i] /= sum;
+    }
+
+    applyConvolutionVChannel(input, output, width, height, channels, kSize, kernel);
 }
 
 
@@ -360,4 +403,14 @@ void OperationWrapper::getSubMatrix(const float* d_in, float* d_out, int removeC
     //findSubMatrix<<<grid, block>>>(d_in, d_out, removeCol, removeRow, currentSize);
 
     checkKernelError("Get SubMatrix");
+}
+
+void OperationWrapper::applyRetinexNormalize(float* d_data, const float* d_global_min, const float* d_global_max, int total_pixels, int channels) {
+
+    int threads1D = 256;
+    int blocks1D = (total_pixels + threads1D - 1) / threads1D;
+
+    ::retinexNormalize<<<blocks1D, threads1D>>>(d_data, d_global_min, d_global_max, total_pixels, channels);
+
+    cudaDeviceSynchronize();
 }

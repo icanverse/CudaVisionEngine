@@ -2,7 +2,7 @@
 // Created by Can on 2.03.2026.
 //
 
-#include "ToneAdjustment.cuh"
+#include "../../include/Kernels/ToneAdjustment.cuh"
 
 __global__ void saturationAdjustment(float* d_hsv, int width, int height, int channels, float value) {
     unsigned int dx = blockIdx.x * blockDim.x + threadIdx.x;

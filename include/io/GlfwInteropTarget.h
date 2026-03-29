@@ -16,10 +16,10 @@ public:
     GlfwInteropTarget(int w, int h, int c, const std::string& title);
     ~GlfwInteropTarget();
 
-    // 1. CUDA'nın içine yazabilmesi için VRAM'in kapısını açar ve adresi verir
+    // CUDA'nın içine yazabilmesi için VRAM'in kapısını açar ve adresi verir
     unsigned char* mapVRAM();
 
-    // 2. Kapıyı kapatır ve o VRAM havuzunu doğrudan ekrana çizer
+    // Kapıyı kapatır ve o VRAM havuzunu doğrudan ekrana çizer
     void unmapAndRender();
 
     bool shouldClose();

@@ -6,7 +6,6 @@ __global__ void rgbToHsv(const float* A, float* Result, int width, int height, i
     if (dx < width && dy < height) {
         unsigned int index = (dx + dy * width) * chanel;
 
-        // 1. Veriyi en hızlı belleğe (Register) çek
         float r = A[index];
         float g = A[index + 1];
         float b = A[index + 2];
@@ -15,17 +14,14 @@ __global__ void rgbToHsv(const float* A, float* Result, int width, int height, i
         float c_min = fminf(r, fminf(g, b));
         float delta = c_max - c_min;
 
-        // 2. Hesaplamaları Global Bellek yerine Yerel Değişkenlerde yap
         float h = 0.0f;
         float s = 0.0f;
-        float v = c_max; // V doğrudan c_max'a eşittir
+        float v = c_max;
 
-        // 3. Saturation (Doygunluk)
         if (c_max > 0.0f) {
             s = delta / c_max;
         }
 
-        // 4. Hue (Renk Tonu - Açısal Hesaplama)
         if (delta > 0.0f) {
             if (c_max == r) {
                 h = 60.0f * fmodf(((g - b) / delta), 6.0f);
@@ -35,18 +31,15 @@ __global__ void rgbToHsv(const float* A, float* Result, int width, int height, i
                 h = 60.0f * (((r - g) / delta) + 4.0f);
             }
 
-            // Açı negatifse pozitife tamamla
             if (h < 0.0f) {
                 h += 360.0f;
             }
         }
 
-        // 5. EN SON ADIM: Global belleğe tek seferde yaz
         Result[index]     = h;
         Result[index + 1] = s;
         Result[index + 2] = v;
 
-        // RGBA (4 Kanallı) ise Alfa kanalını koru
         if (chanel == 4) {
             Result[index + 3] = A[index + 3];
         }

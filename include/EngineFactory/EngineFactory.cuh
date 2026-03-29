@@ -20,22 +20,28 @@ private:
     // Pointerlar
     float* d_data;      // Device (GPU) - İşlenmiş Float Veri (0.0 - 1.0 arası)
     float* d_temp_data; // Çift Bellek Mimarisi için geçici VRAM alanı
+    float* d_mask_data;
+    float* d_global_min;
+    float* d_global_max;
+
+    // Texture Objeleri için
+
 
     // Yardımcı Fonksiyonlar
     void allocateMemory();
     void cleanUp();
 
 public:
-    // YENİ: Artık dosya adı yok. Motor sadece boyutları alıp VRAM'de yer ayırır.
+    // Motor boyutları alıp VRAM'de yer ayırır.
     EngineFactory(int w, int h, int c);
 
     // Destructor: Belleği temizler
     ~EngineFactory();
 
-    // YENİ: RAM'den VRAM'e veri pompalar (Char -> Float normalizasyonu yapar)
+    // RAM'den VRAM'e veri atar (Char -> Float normalizasyonu yapar)
     EngineFactory& uploadFrame(const unsigned char* cpu_data);
 
-    // YENİ: VRAM'den RAM'e işlenmiş veriyi çeker (Float -> Char denormalizasyonu yapar)
+    // VRAM'den RAM'e işlenmiş veriyi çeker (Float -> Char denormalizasyonu yapar)
     void downloadFrame(unsigned char* cpu_data);
 
     // Getterlar
@@ -51,7 +57,7 @@ public:
         }
     }
 
-    // YENİ: Veriyi CPU'ya indirmeden, doğrudan başka bir VRAM adresine (Interop için) yazar
+    // doğrudan başka bir VRAM adresine (Interop için) yazar
     void copyToDeviceUchar(unsigned char* d_dest_uchar);
 
     // Geriye referans dönüyoruz ki zincirleme (fluent) devam edebilsin
@@ -64,6 +70,10 @@ public:
     EngineFactory& yuvToRgb();
     EngineFactory& kernelNV12toRGB();
     EngineFactory& loadNV12DevicePointer();
+    EngineFactory& retinexNormalize();
+
+    //
+    EngineFactory& subVCh();
 
     // Filtreler (In-place çalışır)
     EngineFactory& applyTemperature(float temperature);
@@ -71,15 +81,29 @@ public:
     EngineFactory& applyGamma(float gamma);
 
     //
+    EngineFactory& logTransformation();
+
+    /// Convolution
+    // EngineFactory& applyConvolution();
+    // EngineFactory& applyConvolutionVChannel();
+
+    ///
     EngineFactory& applyBoxBlur();
     EngineFactory& applySharpen();
     EngineFactory& applyEdgeDetection();
+    EngineFactory& applyGaussianBlur5x5();
+    EngineFactory& applySobelX();
+    EngineFactory& applySobelY();
     EngineFactory& applyEmboss();
+
+    EngineFactory& applyGaussianBlurVChannel();
 
     // Renk Uzayına Bağlı Hazır Gelişmiş İşlemler
     EngineFactory& isolateColor(float targetHue, float tolerance);
     EngineFactory& colorReplacement(float targetHue, float tolerance, float replacementHue);
 
+    // Kompleks İşlemler
+    EngineFactory& applyRetinex();
 };
 
 #endif //CUDAVISIONENGINE_ENGINEMANAGEMENT_H

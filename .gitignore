@@ -26,3 +26,7 @@ assets/blonde.jpg
 # İşletim Sistemi Dosyaları
 .DS_Store
 Thumbs.db
+
+# Kendime Not Dosyaları
+TODO.md
+ARC.md

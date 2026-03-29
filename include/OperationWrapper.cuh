@@ -14,6 +14,8 @@ public:
     static void normalize(unsigned char* d_input, float* d_output, int width, int height);
     static void denormalize(float* d_input, unsigned char* d_output, int width, int height);
 
+    static void retinexNormalize(float* input, const float* global_min, const float* global_max, int width, int height, int channels);
+
     // Renk Uzayı
     static void rgbToHsv(const float* d_input, float* d_output, int width, int height, int channels);
     static void hsvToRgb(const float* A, float* Result, int width, int height, int chanel);
@@ -26,8 +28,10 @@ public:
     static void subtract(const float* d_A, const float* d_B, float* d_C, int size);
     static void multiply(const float* d_A, const float* d_B, float* d_C, int size);
 
-    // Alt Matris Bulma (Kofaktör / Determinant hesapları için)
+    // Diğer Matris işlemler
     static void getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize);
+    static void logTransformation(float* input, float* output, int width, int height, int channels);
+    static void k_MinMaxReduction(const float* input, float* global_min, float* global_max, int width, int height, int channels);
 
     // Konvülasyon ve Hazır Filtreler
     static void applyConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel);
@@ -35,8 +39,13 @@ public:
     static void applySharpen(const float* input, float* output, int width, int height, int channels);
     static void applyEdgeDetection(const float* input, float* output, int width, int height, int channels);
 
+
+    static void applyConvolutionVChannel(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel);
+    static void applyGaussianBlurVChannel(const float* input, float* output, int width, int height, int channels);
+
     // Blur İşlemi
     static void smoothing2D(const float* A, float* Result, int width, int height, int channels, int kernelSize);
+
 
     // Renk Uzayına Bağlı Hazır Gelişmiş İşlemler
     static void isolateColor(float* d_hsv, int width, int height, int channels, float targetHue, float tolerance);
@@ -54,10 +63,10 @@ public:
     static void applySobelY(const float* input, float* output, int width, int height, int channels);
     static void applyEmboss(const float* input, float* output, int width, int height, int channels);
 
-
+    //
+    static void applyRetinexNormalize(float* d_data, const float* d_global_min, const float* d_global_max, int total_pixels, int channels);
 
 private:
-    // Yardımcı: Hata kontrolü
     static void checkKernelError(const char* operationName) {
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess) {

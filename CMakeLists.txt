@@ -62,26 +62,26 @@ link_directories(
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cu" "src/*.cpp")
 add_executable(CudaVisionEngine ${SOURCE_FILES}
-        src/EngineFactory.cu
-        include/EngineFactory.cuh
+        src/EngineFactory/EngineFactory.cu
+        include/EngineFactory/EngineFactory.cuh
         src/Kernels/ElementaryMatrixOp.cu
-        include/ElementaryMatrixOp.cuh
+        include/Kernels/ElementaryMatrixOp.cuh
         src/Kernels/Smoothing.cu
-        include/Smoothing.cuh
+        include/Kernels/Smoothing.cuh
         src/Kernels/Convolution.cu
-        include/Convolution.cuh
+        include/Kernels/Convolution.cuh
         src/Kernels/Thresholding.cu
-        include/Thresholding.cuh
-        src/OperationWrapper.cu
+        include/Kernels/Thresholding.cuh
+        src/Wrapper/OperationWrapper.cu
         include/OperationWrapper.cuh
         src/main.cpp
         include/main.h
-        src/ColorSpaceConverter.cu
+        src/Kernels/ColorSpaceConverter.cu
         include/ColorSpaceConverter.cuh
         src/Kernels/ColorOperation.cu
-        include/ColorOperation.cuh
+        include/Kernels/ColorOperation.cuh
         src/Kernels/ToneAdjustment.cu
-        include/ToneAdjustment.cuh
+        include/Kernels/ToneAdjustment.cuh
         include/io/IDataSource.h
         include/io/IRenderTarget.h
         src/io/StbImageSource.cpp
@@ -95,7 +95,22 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/io/Video/Demuxer.cpp
         include/io/Video/Demuxer.h
         src/io/Video/NvDecoder.cpp
-        include/io/Video/NvDecoder.h)
+        include/io/Video/NvDecoder.h
+        src/Kernels/LogTransformation.cu
+        include/Kernels/LogTransformation.cuh
+        src/Kernels/Reduction.cu
+        include/Kernels/Reduction.cuh
+        src/Kernels/Normalization.cu
+        include/Kernels/Normalization.cuh
+        src/Kernels/MaskOperation.cu
+        include/Kernels/MaskOperation.cuh
+        src/EngineFactory/EngineFactory_Retinex.cu
+        src/EngineFactory/EngineFactory_ToneAdjustments.cu
+        src/EngineFactory/EngineFactory_ColorSpaceConverter.cu
+        src/EngineFactory/EngineFactory_ColorOperation.cu
+        src/EngineFactory/EngineFactory_Convolution.cu
+        src/EngineFactory/EngineFactory_Transformation.cu
+)
 
 
 # Kütüphaneleri bağla
