@@ -1,21 +1,13 @@
 #include <iostream>
-#include <vector>
 #include <cuda_runtime.h>
-#include "../../include/Kernels/ElementaryMatrixOp.cuh"
 #include "../../include/EngineFactory/EngineFactory.cuh"
 #include "OperationWrapper.cuh"
-#include "Kernels/Convolution.cuh"
-#include "Kernels/LogTransformation.cuh"
-#include "Kernels/MaskOperation.cuh"
 #include "Kernels/Normalization.cuh"
-#include "Kernels/Reduction.cuh"
 
 // Constructor sadece Bellek Ayırır
 EngineFactory::EngineFactory(int w, int h, int c) : width(w), height(h), channels(c), d_data(nullptr), d_temp_data(nullptr), d_global_min(nullptr), d_global_max(nullptr) {
     totalElementCount = width * height * channels;
     allocateMemory();
-
-
 
     std::cout << "[EngineFactory] Motor hazir. VRAM rezerve edildi: " << width << "x" << height << std::endl;
 }
@@ -47,6 +39,44 @@ void EngineFactory::copyToDeviceUchar(unsigned char* d_dest_uchar) {
     k_denormalizeImage<<<blocksPerGrid, threadsPerBlock>>>(d_data, d_dest_uchar, totalElementCount);
     cudaDeviceSynchronize();
 }
+void EngineFactory::initTextureMemory(cudaArray_t& targetArray, cudaTextureObject_t& targetTexture, int texWidth, int texHeight) {
+
+    // Eğer önceden doluysa sızıntı (leak) olmaması için temizle
+    if (targetTexture) { cudaDestroyTextureObject(targetTexture); targetTexture = 0; }
+    if (targetArray) { cudaFreeArray(targetArray); targetArray = nullptr; }
+
+    // 1. Kanal Formatı: float4 (R, G, B, A)
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
+
+    // 2. Array'i bize verilen "targetArray" referansına ayır!
+    cudaError_t err = cudaMallocArray(&targetArray, &channelDesc, texWidth, texHeight);
+    if (err != cudaSuccess) {
+        std::cerr << "cudaMallocArray Hatasi: " << cudaGetErrorString(err) << std::endl;
+        exit(1);
+    }
+
+    // 3. Kaynak Belirleyici
+    cudaResourceDesc resDesc = {};
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = targetArray; // Evrensel array'i bağla
+
+    // 4. Filtreleme Kuralları (Bilinear Smoothing)
+    cudaTextureDesc texDesc = {};
+    texDesc.addressMode[0] = cudaAddressModeBorder;
+    texDesc.addressMode[1] = cudaAddressModeBorder;
+    texDesc.filterMode = cudaFilterModeLinear;
+    texDesc.readMode = cudaReadModeElementType;
+    texDesc.normalizedCoords = 1;
+
+    // 5. Objeyi Yarat ve "targetTexture" referansına bağla!
+    err = cudaCreateTextureObject(&targetTexture, &resDesc, &texDesc, nullptr);
+    if (err != cudaSuccess) {
+        std::cerr << "cudaCreateTextureObject Hatasi: " << cudaGetErrorString(err) << std::endl;
+        exit(1);
+    }
+
+    std::cout << "[EngineFactory] Donanimsal Texture Bellek Uretildi (" << texWidth << "x" << texHeight << ")" << std::endl;
+}
 
 void EngineFactory::cleanUp() {
     if (d_data) { cudaFree(d_data); d_data = nullptr; }
@@ -54,6 +84,8 @@ void EngineFactory::cleanUp() {
     if (d_mask_data) { cudaFree(d_mask_data); d_mask_data = nullptr; }
     if (d_global_min) { cudaFree(d_global_min); d_global_min = nullptr; }
     if (d_global_max) { cudaFree(d_global_max); d_global_max = nullptr; }
+    if (flareTexture) { cudaDestroyTextureObject(flareTexture);flareTexture = 0; }
+    if (d_flareArray) {cudaFreeArray(d_flareArray);d_flareArray = nullptr; }
 }
 
 // RAM'den VRAM'e Veri Akışı

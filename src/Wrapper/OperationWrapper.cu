@@ -7,8 +7,10 @@
 #include "../../include/Kernels/ColorOperation.cuh"
 #include "../../include/Kernels/ToneAdjustment.cuh"
 #include "../../include/Kernels/Convolution.cuh"
+#include "Kernels/Flare.cuh"
 #include "Kernels/Reduction.cuh"
 #include "Kernels/LogTransformation.cuh"
+#include "Kernels/MaskOperation.cuh"
 #include "Kernels/Normalization.cuh"
 
 void OperationWrapper::calculateGrid(int width, int height, dim3& gridSize, dim3& blockSize) {
@@ -411,6 +413,39 @@ void OperationWrapper::applyRetinexNormalize(float* d_data, const float* d_globa
     int blocks1D = (total_pixels + threads1D - 1) / threads1D;
 
     ::retinexNormalize<<<blocks1D, threads1D>>>(d_data, d_global_min, d_global_max, total_pixels, channels);
+
+    cudaDeviceSynchronize();
+}
+
+// =========================================================
+// PROCEDURAL EFFECTS & TEXTURE MAPPING
+// =========================================================
+
+void OperationWrapper::generateFlareHSV(float* data, int width, int height, int channels,
+                                        float flareX, float flareY,
+                                        float baseHue, float baseSaturation, float falloff) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize); // Senin efsanevi tek satırlık grid hesabın!
+
+    ::generateFlareHSV<<<gridSize, blockSize>>>(data, width, height, channels,
+                                                flareX, flareY, baseHue, baseSaturation, falloff);
+
+    checkKernelError("Generate Flare HSV");
+
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::applyTextureBlendKernel(float* data, int width, int height, int channels,
+                                               cudaTextureObject_t overlayTex, int texWidth, int texHeight,
+                                               float targetX, float targetY, float opacity, bool isAdditive) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::applyTextureBlend<<<gridSize, blockSize>>>(data, width, height, channels,
+                                                       overlayTex, texWidth, texHeight,
+                                                       targetX, targetY, opacity, isAdditive);
+
+    checkKernelError("Apply Evrensel Texture Blend");
 
     cudaDeviceSynchronize();
 }

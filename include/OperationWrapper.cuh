@@ -66,6 +66,16 @@ public:
     //
     static void applyRetinexNormalize(float* d_data, const float* d_global_min, const float* d_global_max, int total_pixels, int channels);
 
+    // Flare Maskesi Üretim Sarmalayıcısı
+    static void generateFlareHSV(float* data, int width, int height, int channels,
+                                 float flareX, float flareY,
+                                 float baseHue, float baseSaturation, float falloff);
+
+    // Evrensel Texture Blend Sarmalayıcısı
+    static void applyTextureBlendKernel(float* data, int width, int height, int channels,
+                                        cudaTextureObject_t overlayTex, int texWidth, int texHeight,
+                                        float targetX, float targetY, float opacity, bool isAdditive);
+
 private:
     static void checkKernelError(const char* operationName) {
         cudaError_t err = cudaGetLastError();

@@ -24,8 +24,9 @@ private:
     float* d_global_min;
     float* d_global_max;
 
-    // Texture Objeleri için
-
+    // Texture Belleği Kullanmak için
+    cudaArray_t d_flareArray = nullptr;        // Fiziksel bellek ~doku belleği
+    cudaTextureObject_t flareTexture = 0;      // Doku okuma objesi
 
     // Yardımcı Fonksiyonlar
     void allocateMemory();
@@ -43,6 +44,9 @@ public:
 
     // VRAM'den RAM'e işlenmiş veriyi çeker (Float -> Char denormalizasyonu yapar)
     void downloadFrame(unsigned char* cpu_data);
+
+    // Hangi array ve objeyi verirsen, onu o boyutlarda texture yapar.
+    void initTextureMemory(cudaArray_t& targetArray, cudaTextureObject_t& targetTexture, int texWidth, int texHeight);
 
     // Getterlar
     int getWidth() const { return width; }
@@ -104,6 +108,10 @@ public:
 
     // Kompleks İşlemler
     EngineFactory& applyRetinex();
+
+    // --- PROCEDURAL EFEKTLER VE TEXTURE MAPPING ---
+    EngineFactory& blendTexture(cudaTextureObject_t tex, int texW, int texH, float targetX, float targetY, float opacity, bool isAdditive);
+    EngineFactory& renderProceduralFlare(float x, float y, float hue, float opacity);
 };
 
 #endif //CUDAVISIONENGINE_ENGINEMANAGEMENT_H

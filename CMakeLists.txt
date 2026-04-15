@@ -110,6 +110,9 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/EngineFactory/EngineFactory_ColorOperation.cu
         src/EngineFactory/EngineFactory_Convolution.cu
         src/EngineFactory/EngineFactory_Transformation.cu
+        src/Kernels/Flare.cu
+        include/Kernels/Flare.cuh
+        src/EngineFactory/EngineFactory_Flare.cu
 )
 
 
