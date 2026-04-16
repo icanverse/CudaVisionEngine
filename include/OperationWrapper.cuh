@@ -76,6 +76,8 @@ public:
                                         cudaTextureObject_t overlayTex, int texWidth, int texHeight,
                                         float targetX, float targetY, float opacity, bool isAdditive);
 
+    static void apply3DLUT(float* d_rgb, int width, int height, int channels, cudaTextureObject_t lutTexture);
+
 private:
     static void checkKernelError(const char* operationName) {
         cudaError_t err = cudaGetLastError();

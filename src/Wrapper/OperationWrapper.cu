@@ -10,6 +10,7 @@
 #include "Kernels/Flare.cuh"
 #include "Kernels/Reduction.cuh"
 #include "Kernels/LogTransformation.cuh"
+#include "Kernels/LUT_3D.cuh"
 #include "Kernels/MaskOperation.cuh"
 #include "Kernels/Normalization.cuh"
 
@@ -447,5 +448,15 @@ void OperationWrapper::applyTextureBlendKernel(float* data, int width, int heigh
 
     checkKernelError("Apply Evrensel Texture Blend");
 
+    cudaDeviceSynchronize();
+}
+
+void OperationWrapper::apply3DLUT(float* data, int width, int height, int channels, cudaTextureObject_t lutTexture) {
+    dim3 gridSize, blockSize;
+    calculateGrid(width, height, gridSize, blockSize);
+
+    ::apply3DLUT<<<gridSize, blockSize>>>(data, width, height, channels, lutTexture);
+
+    checkKernelError("Apply 3D LUT");
     cudaDeviceSynchronize();
 }

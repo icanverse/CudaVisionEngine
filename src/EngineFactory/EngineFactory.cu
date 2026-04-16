@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include "../../include/EngineFactory/EngineFactory.cuh"
+
+#include <string>
+
 #include "OperationWrapper.cuh"
 #include "Kernels/Normalization.cuh"
 

@@ -113,6 +113,9 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/Kernels/Flare.cu
         include/Kernels/Flare.cuh
         src/EngineFactory/EngineFactory_Flare.cu
+        src/EngineFactory/EngineFactory_3DLUT.cu
+        src/Kernels/LUT_3D.cu
+        include/Kernels/LUT_3D.cuh
 )
 
 

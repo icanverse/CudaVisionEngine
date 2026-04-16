@@ -1,13 +1,11 @@
-//
-// Created by Can on 13.02.2026.
-//
-
 #ifndef CUDAVISIONENGINE_ENGINEMANAGEMENT_H
 #define CUDAVISIONENGINE_ENGINEMANAGEMENT_H
 
 #include <cuda.h>
 #include <utility> // std::swap için eklendi
 #include <cuda_runtime.h>
+#include <vector>
+#include <string>
 
 class EngineFactory {
 private:
@@ -33,6 +31,11 @@ private:
     void cleanUp();
 
 public:
+
+    // LUT Texture Belleği dışarıdan erişilebilmesi için public'te
+    cudaArray_t d_lutArray = nullptr;
+    cudaTextureObject_t lutTexture = 0;
+
     // Motor boyutları alıp VRAM'de yer ayırır.
     EngineFactory(int w, int h, int c);
 
@@ -47,6 +50,8 @@ public:
 
     // Hangi array ve objeyi verirsen, onu o boyutlarda texture yapar.
     void initTextureMemory(cudaArray_t& targetArray, cudaTextureObject_t& targetTexture, int texWidth, int texHeight);
+
+    void init3DTextureMemory(const float* h_lutData, int lutSize, cudaArray_t& targetArray, cudaTextureObject_t& targetTexture);
 
     // Getterlar
     int getWidth() const { return width; }
@@ -112,6 +117,15 @@ public:
     // --- PROCEDURAL EFEKTLER VE TEXTURE MAPPING ---
     EngineFactory& blendTexture(cudaTextureObject_t tex, int texW, int texH, float targetX, float targetY, float opacity, bool isAdditive);
     EngineFactory& renderProceduralFlare(float x, float y, float hue, float opacity);
+
+
+    EngineFactory& apply3DLUT(cudaTextureObject_t lutTexture);
+
 };
+
+// Yardımcı Fonksiyonlar
+bool loadCubeLUT(const std::string& filepath, std::vector<float>& lutData, int& lutSize);
+
+
 
 #endif //CUDAVISIONENGINE_ENGINEMANAGEMENT_H
