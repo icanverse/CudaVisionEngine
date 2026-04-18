@@ -78,6 +78,9 @@ public:
 
     static void apply3DLUT(float* d_rgb, int width, int height, int channels, cudaTextureObject_t lutTexture);
 
+
+    static void opticalFlowLucasKanade(const float* currentFrame, const float* previousFrame,
+                                           int width, int height, int channels, float* flowU, float* flowV);
 private:
     static void checkKernelError(const char* operationName) {
         cudaError_t err = cudaGetLastError();

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <thread> // YENİ EKLENDİ: İşlemciyi uyutmak (sleep) için gerekli kütüphane
 
 // Eğer LUT okuyucu fonksiyonunu (loadCubeLUT) ayrı bir dosyaya yazdıysan buraya include et
 // #include "io/LUTLoader.h"
@@ -13,11 +14,11 @@
 #include "io/Video/NvDecoder.h"
 #include "io/GlfwInteropTarget.h"
 
-
 int main() {
     std::cout << "[Main] ZERO-COPY Video Interop Motoru Baslatiliyor..." << std::endl;
 
-    Demuxer demuxer("assets/PurpleModel.mp4");
+    // Kendi test videonu buraya girdin
+    Demuxer demuxer("assets/movcar.mp4");
     NvDecoder decoder;
 
     GlfwInteropTarget target(demuxer.getWidth(), demuxer.getHeight(), 3, "CudaVisionEngine - Fluent Video");
@@ -32,7 +33,6 @@ int main() {
     std::cout << "[Main] MadMax LUT Dosyasi Okunuyor..." << std::endl;
     if (loadCubeLUT("assets/madmax.cube", lutData, lutSize)) {
         // CPU'da okunan veriyi, GPU'daki 3D Texture Donanımına (lutTexture) Fırınla!
-        // Not: init3DTextureMemory metodunu EngineFactory.cuh içinde public yaptığını varsayıyoruz.
         engine.init3DTextureMemory(lutData.data(), lutSize, engine.d_lutArray, engine.lutTexture);
     } else {
         std::cerr << "[HATA] LUT Dosyasi yuklenemedi! Varsayilan renklerle devam ediliyor." << std::endl;
@@ -43,6 +43,12 @@ int main() {
     CUdeviceptr d_nv12Frame = 0;
     unsigned int pitch = 0;
 
+    // ==============================================================================
+    // YENİ EKLENDİ: HIZ SINIRLAYICI AYARLARI (FRAME PACING)
+    // ==============================================================================
+    double targetVideoFPS = 30.0; // Videonun orijinal hızı (Genelde 24, 30 veya 60 olur)
+    auto target_frame_duration = std::chrono::duration<double, std::milli>(1000.0 / targetVideoFPS);
+
     // Animasyon Değişkenleri
     auto t_start = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
@@ -50,7 +56,7 @@ int main() {
     float repHue = 10.0f;
 
     // ==============================================================================
-    // 2. ANA OYUN DÖNGÜSÜ (150+ FPS)
+    // 2. ANA OYUN DÖNGÜSÜ
     // ==============================================================================
     while (!target.shouldClose()) {
 
@@ -63,6 +69,9 @@ int main() {
         // VRAM'de çözülmüş kare varsa al ve Fluent Motoruna sok!
         while (decoder.getDecodedFrame(&d_nv12Frame, &pitch)) {
 
+            // YENİ EKLENDİ: O anki karenin işlenmeye başlandığı anı kaydet
+            auto frame_start_time = std::chrono::high_resolution_clock::now();
+
             // Dinamik Animasyon Matematiği
             repHue = std::fmod(repHue + 2.0f, 360.0f);
             timeTracker += 0.03f;
@@ -72,12 +81,8 @@ int main() {
             // ==============================================================================
             // 3. FLUENT MOTOR (GPU SİHRİ)
             // ==============================================================================
-            engine.loadNV12DevicePointer(d_nv12Frame, pitch);
-
-            // Eğer LUT objesi başarıyla oluşturulduysa (sıfırdan farklıysa) renk motorunu çalıştır
-            if (engine.lutTexture != 0) {
-                engine.apply3DLUT(engine.lutTexture);
-            }
+            engine.loadNV12DevicePointer(d_nv12Frame, pitch)
+                  .applyOpticalFlow(1.0f);
 
             // ==============================================================================
             // 4. VRAM TRANSFER VE RENDER (SIFIR KOPYA)
@@ -89,13 +94,24 @@ int main() {
             // 5. TEMİZLİK (Memory Leak Önlemi)
             decoder.releaseFrame(d_nv12Frame);
 
+            // ==============================================================================
+            // YENİ EKLENDİ: FPS SABİTLEYİCİ (Uyutma Mekanizması)
+            // ==============================================================================
+            auto frame_end_time = std::chrono::high_resolution_clock::now();
+            auto processing_time = std::chrono::duration<double, std::milli>(frame_end_time - frame_start_time);
+
+            // Eğer motor işini hedeflenen süreden (örneğin 33ms) daha çabuk bitirdiyse, kalan süre kadar uyu!
+            if (processing_time < target_frame_duration) {
+                std::this_thread::sleep_for(target_frame_duration - processing_time);
+            }
+
             // Performans Ölçümü
             frameCount++;
-            if (frameCount % 100 == 0) {
+            if (frameCount % 30 == 0) { // Logları 100 yerine 30 karede bir (saniyede 1) basalım
                 auto t_end = std::chrono::high_resolution_clock::now();
                 double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
 
-                double avg_latency_ms = elapsed_ms / 100.0;
+                double avg_latency_ms = elapsed_ms / 30.0;
                 double fps = 1000.0 / avg_latency_ms;
 
                 std::cout << "Guncel FPS: " << std::fixed << std::setprecision(1) << fps

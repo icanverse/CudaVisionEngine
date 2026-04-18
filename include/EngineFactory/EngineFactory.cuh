@@ -26,9 +26,17 @@ private:
     cudaArray_t d_flareArray = nullptr;        // Fiziksel bellek ~doku belleği
     cudaTextureObject_t flareTexture = 0;      // Doku okuma objesi
 
+    // Optical Flow Belleği
+    float* d_prev_data;   // Bir önceki kare (t-1)
+    float* d_flow_u;      // X yönündeki hareket vektörleri (Horizontal Flow)
+    float* d_flow_v;      // Y yönündeki hareket vektörleri (Vertical Flow)
+
+
     // Yardımcı Fonksiyonlar
     void allocateMemory();
     void cleanUp();
+
+    void saveCurrentFrameAsPrevious();
 
 public:
 
@@ -120,6 +128,9 @@ public:
 
 
     EngineFactory& apply3DLUT(cudaTextureObject_t lutTexture);
+
+
+    EngineFactory& applyOpticalFlowLucasKanade(float strength = 1.0f);
 
 };
 

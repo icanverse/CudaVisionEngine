@@ -27,11 +27,22 @@ void EngineFactory::allocateMemory() {
     cudaError_t err4 = cudaMalloc(&d_global_min, sizeof(float));
     cudaError_t err5 = cudaMalloc(&d_global_max, sizeof(float));
 
+    // 1. Önceki kare için yer ayır ve SIFIRLA! (Çok kritik)
+    cudaError_t err6 = cudaMalloc(&d_prev_data, floatSizeBytes);
+    cudaMemset(d_prev_data, 0, floatSizeBytes);
 
-    if (err1 != cudaSuccess || err2 != cudaSuccess || err3 != cudaSuccess || err4 != cudaSuccess){
-        std::cerr << "CUDA Malloc Failed: " << cudaGetErrorString(err1) << " | " << cudaGetErrorString(err2) << std::endl;
+    // 2. Hız vektörleri için yer ayır ve SIFIRLA!
+    size_t flowSizeBytes = (width * height) * sizeof(float);
+    cudaError_t err7 = cudaMalloc(&d_flow_u, flowSizeBytes);
+    cudaError_t err8 = cudaMalloc(&d_flow_v, flowSizeBytes);
+    cudaMemset(d_flow_u, 0, flowSizeBytes);
+    cudaMemset(d_flow_v, 0, flowSizeBytes);
+
+    if (err1 != cudaSuccess || err2 != cudaSuccess || err3 != cudaSuccess ||
+        err4 != cudaSuccess || err6 != cudaSuccess || err7 != cudaSuccess){
+        std::cerr << "CUDA Malloc Failed!" << std::endl;
         exit(1);
-    }
+        }
 }
 
 void EngineFactory::copyToDeviceUchar(unsigned char* d_dest_uchar) {
@@ -89,6 +100,10 @@ void EngineFactory::cleanUp() {
     if (d_global_max) { cudaFree(d_global_max); d_global_max = nullptr; }
     if (flareTexture) { cudaDestroyTextureObject(flareTexture);flareTexture = 0; }
     if (d_flareArray) {cudaFreeArray(d_flareArray);d_flareArray = nullptr; }
+
+    if (d_prev_data) cudaFree(d_prev_data);
+    if (d_flow_u) cudaFree(d_flow_u);
+    if (d_flow_v) cudaFree(d_flow_v);
 }
 
 // RAM'den VRAM'e Veri Akışı
@@ -153,6 +168,8 @@ EngineFactory& EngineFactory::loadNV12DevicePointer(CUdeviceptr d_nv12, int pitc
     return *this;
 }
 
-
-
+void EngineFactory::saveCurrentFrameAsPrevious() {
+    // Mevcut d_data içeriğini d_prev_data'ya kopyala
+    cudaMemcpy(d_prev_data, d_data, totalElementCount * sizeof(float), cudaMemcpyDeviceToDevice);
+}
 
