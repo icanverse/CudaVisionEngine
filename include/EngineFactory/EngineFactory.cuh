@@ -132,6 +132,12 @@ public:
 
     EngineFactory& applyOpticalFlowLucasKanade(float strength = 1.0f);
 
+    EngineFactory& applyVectorFieldColoring(float intensity = 1.0f);
+    EngineFactory& applyNormalMapVisualization(float intensity = 1.0f);
+    EngineFactory& applyQuiverPlotVisualization(float intensity = 1.0f);
+    EngineFactory& applyJetScalarColorPalette(float maxSpeed);
+    EngineFactory& applyLineIntegralConvolution(int steps);
+
 };
 
 // Yardımcı Fonksiyonlar

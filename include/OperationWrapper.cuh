@@ -81,6 +81,16 @@ public:
 
     static void opticalFlowLucasKanade(const float* currentFrame, const float* previousFrame,
                                            int width, int height, int channels, float* flowU, float* flowV);
+
+
+
+    static void applyVectorFieldColoring(float* d_data, const float* flowU, const float* flowV, int width, int height, int channels, float intensity);
+    static void applyNormalMapVisualization(float* d_data, const float* flowU, const float* flowV, int width, int height, int channels, float intensity);
+    static void applyQuiverPlotVisualization(float* d_data, const float* flowU, const float* flowV, int width, int height, int channels, float intensity);
+    static void applyJetScalarColorPalette(float* d_data, const float* flowU, const float* flowV, int width, int height, int channels, float maxSpeed);
+    static void applyLineIntegralConvolution(float* d_data, const float* flowU, const float* flowV, int width, int height, int channels, int steps);
+
+
 private:
     static void checkKernelError(const char* operationName) {
         cudaError_t err = cudaGetLastError();

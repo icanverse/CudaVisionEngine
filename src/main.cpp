@@ -13,6 +13,7 @@
 #include "io/Video/Demuxer.h"
 #include "io/Video/NvDecoder.h"
 #include "io/GlfwInteropTarget.h"
+#include "Kernels/VectorFieldVisualization2D.cuh"
 
 int main() {
     std::cout << "[Main] ZERO-COPY Video Interop Motoru Baslatiliyor..." << std::endl;
@@ -46,7 +47,7 @@ int main() {
     // ==============================================================================
     // YENİ EKLENDİ: HIZ SINIRLAYICI AYARLARI (FRAME PACING)
     // ==============================================================================
-    double targetVideoFPS = 30.0; // Videonun orijinal hızı (Genelde 24, 30 veya 60 olur)
+    double targetVideoFPS = 60.0; // Videonun orijinal hızı (Genelde 24, 30 veya 60 olur)
     auto target_frame_duration = std::chrono::duration<double, std::milli>(1000.0 / targetVideoFPS);
 
     // Animasyon Değişkenleri
@@ -82,7 +83,8 @@ int main() {
             // 3. FLUENT MOTOR (GPU SİHRİ)
             // ==============================================================================
             engine.loadNV12DevicePointer(d_nv12Frame, pitch)
-                  .applyOpticalFlow(1.0f);
+                  .applyOpticalFlowLucasKanade(1.0f)
+                  .applyVectorFieldColoring(0.8f);
 
             // ==============================================================================
             // 4. VRAM TRANSFER VE RENDER (SIFIR KOPYA)

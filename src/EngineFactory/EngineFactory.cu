@@ -18,31 +18,31 @@ EngineFactory::EngineFactory(int w, int h, int c) : width(w), height(h), channel
 EngineFactory::~EngineFactory() {
     cleanUp();
 }
-
 void EngineFactory::allocateMemory() {
     size_t floatSizeBytes = totalElementCount * sizeof(float);
-    cudaError_t err1 = cudaMalloc(&d_data, floatSizeBytes);
-    cudaError_t err2 = cudaMalloc(&d_temp_data, floatSizeBytes);
-    cudaError_t err3 = cudaMalloc(&d_mask_data, floatSizeBytes);
-    cudaError_t err4 = cudaMalloc(&d_global_min, sizeof(float));
-    cudaError_t err5 = cudaMalloc(&d_global_max, sizeof(float));
-
-    // 1. Önceki kare için yer ayır ve SIFIRLA! (Çok kritik)
-    cudaError_t err6 = cudaMalloc(&d_prev_data, floatSizeBytes);
-    cudaMemset(d_prev_data, 0, floatSizeBytes);
-
-    // 2. Hız vektörleri için yer ayır ve SIFIRLA!
     size_t flowSizeBytes = (width * height) * sizeof(float);
-    cudaError_t err7 = cudaMalloc(&d_flow_u, flowSizeBytes);
-    cudaError_t err8 = cudaMalloc(&d_flow_v, flowSizeBytes);
+    cudaError_t err;
+
+    auto checkErr = [&](cudaError_t e, const std::string& msg) {
+        if (e != cudaSuccess) {
+            std::cerr << "[CUDA HATA] " << msg << ": " << cudaGetErrorString(e) << std::endl;
+            exit(1);
+        }
+    };
+
+    checkErr(cudaMalloc(&d_data, floatSizeBytes), "d_data");
+    checkErr(cudaMalloc(&d_temp_data, floatSizeBytes), "d_temp_data");
+    checkErr(cudaMalloc(&d_mask_data, floatSizeBytes), "d_mask_data");
+    checkErr(cudaMalloc(&d_global_min, sizeof(float)), "d_global_min");
+    checkErr(cudaMalloc(&d_global_max, sizeof(float)), "d_global_max");
+    checkErr(cudaMalloc(&d_prev_data, floatSizeBytes), "d_prev_data");
+    checkErr(cudaMalloc(&d_flow_u, flowSizeBytes), "d_flow_u");
+    checkErr(cudaMalloc(&d_flow_v, flowSizeBytes), "d_flow_v");
+
+    // İlk kareler için temizlik
+    cudaMemset(d_prev_data, 0, floatSizeBytes);
     cudaMemset(d_flow_u, 0, flowSizeBytes);
     cudaMemset(d_flow_v, 0, flowSizeBytes);
-
-    if (err1 != cudaSuccess || err2 != cudaSuccess || err3 != cudaSuccess ||
-        err4 != cudaSuccess || err6 != cudaSuccess || err7 != cudaSuccess){
-        std::cerr << "CUDA Malloc Failed!" << std::endl;
-        exit(1);
-        }
 }
 
 void EngineFactory::copyToDeviceUchar(unsigned char* d_dest_uchar) {

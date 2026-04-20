@@ -121,6 +121,8 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/EngineFactory/EngineFactory_OpticalFlow.cu
         src/Kernels/VectorFieldVisualization2D.cu
         include/Kernels/VectorFieldVisualization2D.cuh
+        src/EngineFactory/EngineFactory_VectorFieldVisualization2D.cu
+        src/EngineFactory/EngineFactory_VectorFieldVisualization2D.cuh
 )
 
 
