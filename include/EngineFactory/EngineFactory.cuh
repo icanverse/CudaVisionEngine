@@ -129,7 +129,6 @@ public:
 
     EngineFactory& apply3DLUT(cudaTextureObject_t lutTexture);
 
-
     EngineFactory& applyOpticalFlowLucasKanade(float strength = 1.0f);
 
     EngineFactory& applyVectorFieldColoring(float intensity = 1.0f);
