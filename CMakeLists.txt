@@ -122,7 +122,12 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/Kernels/VectorFieldVisualization2D.cu
         include/Kernels/VectorFieldVisualization2D.cuh
         src/EngineFactory/EngineFactory_VectorFieldVisualization2D.cu
-        src/EngineFactory/EngineFactory_VectorFieldVisualization2D.cuh
+        src/Wrapper/OW_VectorFieldVisualization2D.cu
+        src/Wrapper/OW_ToneAdjustment.cu
+        src/Wrapper/OW__Convolution.cu
+        src/Wrapper/OW_ColorSpaceConverter.cu
+        src/Wrapper/OW_ColorOperation.cu
+        src/Wrapper/OW_OpticalFlow.cu
 )
 
 

@@ -1,20 +1,15 @@
 #include "OperationWrapper.cuh"
 #include "../../include/Kernels/ElementaryMatrixOp.cuh"
 #include "../../include/Kernels/Smoothing.cuh"
-#include "ColorSpaceConverter.cuh"
+
 #include <cstdio>
 
-#include "../../include/Kernels/ColorOperation.cuh"
-#include "../../include/Kernels/ToneAdjustment.cuh"
-#include "../../include/Kernels/Convolution.cuh"
 #include "Kernels/Flare.cuh"
 #include "Kernels/Reduction.cuh"
 #include "Kernels/LogTransformation.cuh"
 #include "Kernels/LUT_3D.cuh"
 #include "Kernels/MaskOperation.cuh"
 #include "Kernels/Normalization.cuh"
-#include "Kernels/OpticalFlow.cuh"
-#include "Kernels/VectorFieldVisualization2D.cuh"
 
 void OperationWrapper::calculateGrid(int width, int height, dim3& gridSize, dim3& blockSize) {
     blockSize = dim3(16, 16);
@@ -23,7 +18,6 @@ void OperationWrapper::calculateGrid(int width, int height, dim3& gridSize, dim3
         (height + blockSize.y - 1) / blockSize.y
     );
 }
-
 
 void OperationWrapper::normalize(unsigned char* d_input, float* d_output, int width, int height) {
     int totalElements = width * height;
@@ -95,84 +89,7 @@ void OperationWrapper::smoothing2D(const float* A, float* Result, int width, int
     cudaDeviceSynchronize();
 }
 
-void OperationWrapper::rgbToHsv(const float* d_input, float* d_output, int width, int height, int channels) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
 
-    ::rgbToHsv<<<gridSize, blockSize>>>(d_input, d_output, width, height, channels);
-
-    checkKernelError("Convert RGB to HSV");
-
-    cudaDeviceSynchronize();
-
-}
-
-void OperationWrapper::hsvToRgb(const float* d_input, float* d_output, int width, int height, int channels) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
-
-    ::hsvToRgb<<<gridSize, blockSize>>>(d_input, d_output, width, height, channels);
-
-    checkKernelError("Convert HSV to RGB");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::rgbToYuv(const float *A, float *Result, int width, int height, int channel) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::rgbToYuv<<<gridSize, blockSize>>>(A, Result, width, height, channel);
-
-    checkKernelError("Convert RGB to YUV");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::yuvToRgb(const float *A, float *Result, int width, int height, int channels) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::yuvToRgb<<<gridSize, blockSize>>>(A, Result, width, height, channels);
-
-    checkKernelError("Convert YUV to RGB");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::kernelNV12toRGB(const unsigned char *pNV12, unsigned char *pRGB, int width, int height, int pitch) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::kernelNV12toRGB<<<gridSize, blockSize>>>(pNV12, pRGB, width, height, pitch);
-
-    checkKernelError("Convert YUV to RGB (NV12)");
-
-    cudaDeviceSynchronize();
-}
-
-/// > Color Op
-void OperationWrapper::isolateColor(float *d_hsv, int width, int height, int channels, float targetHue, float tolerance) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
-
-    ::isolateColor<<<gridSize, blockSize>>>(d_hsv, width, height, channels, targetHue, tolerance);
-
-    checkKernelError("İsolate Color");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::colorReplacement(float *d_hsv, int width, int height, int channels, float targetHue, float tolerance, float replacementHue) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize); // Tek satırda tertemiz!
-
-    ::colorReplacement<<<gridSize, blockSize>>>(d_hsv, width, height, channels, targetHue, tolerance, replacementHue);
-
-    checkKernelError("İsolate Color");
-
-    cudaDeviceSynchronize();
-}
 
 /// Dönüşümler
 
@@ -186,76 +103,6 @@ void OperationWrapper::logTransformation(float *input, float* output, int width,
 
     cudaDeviceSynchronize();
 }
-
-/// Tone Adj
-
-void OperationWrapper::brightnessAdjustment(float *d_hsv, int width, int height, int channels, float value) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::brightnessAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, value);
-
-    checkKernelError("Brightness Adjustment");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::saturationAdjustment(float *d_hsv, int width, int height, int channels, float value) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::saturationAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, value);
-
-    checkKernelError("Saturation Adjustment");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::contrastAdjustment(float *d_hsv, int width, int height, int channels, float contrastFactor, float midpoint) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::contrastAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, contrastFactor, midpoint);
-
-    checkKernelError("Contrast Adjustment");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::shadowsHighlightsAdjustment(float *d_hsv, int width, int height, int channels, float shadowAmount, float highlightAmount) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::shadowsHighlightsAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, shadowAmount, highlightAmount);
-
-    checkKernelError("Shadows - Highlights Adjustment");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::temperatureAdjustment(float *d_rgb, int width, int height, int channels, float temperature) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::temperatureAdjustment<<<gridSize, blockSize>>>(d_rgb, width, height, channels, temperature);
-
-    checkKernelError("Temperature Adjustment");
-
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::gammaCorrectionAdjustment(float *d_hsv, int width, int height, int channels, float gamma) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::gammaCorrectionAdjustment<<<gridSize, blockSize>>>(d_hsv, width, height, channels, gamma);
-
-    checkKernelError("Gamma Correction Adjustment");
-
-    cudaDeviceSynchronize();
-}
-
-
 void OperationWrapper::add(const float* d_A, const float* d_B, float* d_C, int size, bool useSharedMem) {
     // 2D Grid Hesabı
     dim3 block(TILE_SIZE, TILE_SIZE);
@@ -286,119 +133,6 @@ void OperationWrapper::multiply(const float* d_A, const float* d_B, float* d_C, 
     checkKernelError("Matrix Multiply");
 }
 
-void OperationWrapper::applyConvolution(const float* input, float* output, int width, int height, int channels, int kernelSize, const float* h_kernel) {
-
-    dim3 threads(16, 16);
-    dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
-
-    Convolution::launchConvolution(input, output, width, height, channels, kernelSize, h_kernel, blocks, threads);
-
-    checkKernelError("Apply Convolution");
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::applyConvolutionVChannel(const float *input, float *output, int width, int height, int channels, int kernelSize, const float* h_kernel) {
-    dim3 threads(16, 16);
-    dim3 blocks((width + threads.x - 1) / threads.x, (height + threads.y - 1) / threads.y);
-
-
-    Convolution::launchConvolutionVChannel(input, output, width, height, channels, kernelSize, h_kernel, blocks, threads);
-
-    checkKernelError("Apply Convolution");
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::applyBoxBlur(const float* input, float* output, int width, int height, int channels) {
-    int kSize = 3;
-    float w = 1.0f / 9.0f; // Tüm piksellerin eşit ortalaması
-    float kernel[9] = {
-        w, w, w,
-        w, w, w,
-        w, w, w
-    };
-    applyConvolution(input, output, width, height, channels, kSize, kernel);
-}
-
-void OperationWrapper::applySharpen(const float* input, float* output, int width, int height, int channels) {
-    int kSize = 3;
-    float kernel[9] = {
-        0.0f, -1.0f,  0.0f,
-       -1.0f,  5.0f, -1.0f,
-        0.0f, -1.0f,  0.0f
-   };
-    applyConvolution(input, output, width, height, channels, kSize, kernel);
-}
-
-void OperationWrapper::applyEdgeDetection(const float* input, float* output, int width, int height, int channels) {
-    int kSize = 3;
-    float kernel[9] = {
-        -1.0f, -1.0f, -1.0f,
-        -1.0f,  8.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f
-    };
-    applyConvolution(input, output, width, height, channels, kSize, kernel);
-}
-
-void OperationWrapper::applyGaussianBlur5x5(const float* input, float* output, int width, int height, int channels) {
-    int kSize = 5;
-    float kernel[25] = {
-        1/273.f,  4/273.f,  7/273.f,  4/273.f, 1/273.f,
-        4/273.f, 16/273.f, 26/273.f, 16/273.f, 4/273.f,
-        7/273.f, 26/273.f, 41/273.f, 26/273.f, 7/273.f,
-        4/273.f, 16/273.f, 26/273.f, 16/273.f, 4/273.f,
-        1/273.f,  4/273.f,  7/273.f,  4/273.f, 1/273.f
-    };
-    applyConvolution(input, output, width, height, channels, kSize, kernel);
-}
-
-void OperationWrapper::applySobelX(const float* input, float* output, int width, int height, int channels) {
-    float kernel[9] = {
-        -1, 0, 1,
-        -2, 0, 2,
-        -1, 0, 1
-    };
-    applyConvolution(input, output, width, height, channels, 3, kernel);
-}
-
-void OperationWrapper::applySobelY(const float* input, float* output, int width, int height, int channels) {
-    float kernel[9] = {
-        -1, -2, -1,
-         0,  0,  0,
-         1,  2,  1
-    };
-    applyConvolution(input, output, width, height, channels, 3, kernel);
-}
-
-void OperationWrapper::applyEmboss(const float* input, float* output, int width, int height, int channels) {
-    float kernel[9] = {
-        -2, -1, 0,
-        -1,  1, 1,
-         0,  1, 2
-    };
-    applyConvolution(input, output, width, height, channels, 3, kernel);
-}
-
-void OperationWrapper::applyGaussianBlurVChannel(const float* input, float* output, int width, int height, int channels) {
-    int kSize = 31;
-    float kernel[961];
-
-    float sigma = 5.0f;  // büyük surround için
-    int half = kSize / 2;
-    float sum = 0.0f;
-
-    for (int y = -half; y <= half; y++) {
-        for (int x = -half; x <= half; x++) {
-            float val = expf(-(x*x + y*y) / (2.0f * sigma * sigma));
-            kernel[(y + half) * kSize + (x + half)] = val;
-            sum += val;
-        }
-    }
-    for (int i = 0; i < kSize * kSize; i++) {
-        kernel[i] /= sum;
-    }
-
-    applyConvolutionVChannel(input, output, width, height, channels, kSize, kernel);
-}
 
 
 void OperationWrapper::getSubMatrix(const float* d_in, float* d_out, int removeCol, int removeRow, int currentSize) {
@@ -462,82 +196,3 @@ void OperationWrapper::apply3DLUT(float* data, int width, int height, int channe
     checkKernelError("Apply 3D LUT");
     cudaDeviceSynchronize();
 }
-
-void OperationWrapper::opticalFlowLucasKanade(const float *currentFrame, const float *previousFrame, int width, int height, int channels, float *flowU, float *flowV) {
-
-    // 1. BLOK VE GRİD HESABI (Özel Durum)
-    // Shared Memory kernelimiz TILE_SIZE = 16 üzerine kurulduğu için blok boyutunu kilitliyoruz!
-    dim3 blockSize(16, 16);
-    dim3 gridSize((width + blockSize.x - 1) / blockSize.x,
-                  (height + blockSize.y - 1) / blockSize.y);
-
-    // 2. KERNELİ ATEŞLE
-    // (Eğer kernelinin adını calculateOpticalFlowShared yerine opticalFlowLucasKanadeKernel yaptıysan adını değiştir)
-    ::opticalFlowLucasKanade<<<gridSize, blockSize>>>(
-        currentFrame,
-        previousFrame,
-        width,
-        height,
-        channels,
-        flowU,
-        flowV
-    );
-
-    // 3. GÜVENLİK VE SENKRONİZASYON
-    checkKernelError("Optical Flow Lucas-Kanade");
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::applyVectorFieldColoring(float *d_data, const float *flowU, const float* flowV,
-                                               int width, int height, int channels, float intensity) {
-
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::applyVectorFieldColoring<<<gridSize, blockSize>>>(d_data, flowU, flowV, width, height, channels, intensity);
-
-    checkKernelError("Apply Vector Field Coloring");
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::applyNormalMapVisualization(float *d_data, const float *flowU, const float *flowV, int width,
-                                                   int height, int channels, float intensity) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::applyNormalMapVisualization<<<gridSize, blockSize>>>(d_data, flowU, flowV, width, height, channels, intensity);
-
-    checkKernelError("Apply Normal Map");
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::applyQuiverPlotVisualization(float *d_data, const float *flowU, const float *flowV, int width, int height, int channels, float intensity) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::applyQuiverPlotVisualization<<<gridSize, blockSize>>>(d_data, flowU, flowV, width, height, channels, intensity);
-
-    checkKernelError("Apply Quiver Pilot");
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::applyJetScalarColorPalette(float *d_data, const float *flowU, const float *flowV, int width, int height, int channels, float maxSpeed) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::applyQuiverPlotVisualization<<<gridSize, blockSize>>>(d_data, flowU, flowV, width, height, channels, maxSpeed);
-
-    checkKernelError("Apply Jet Scalar Color Palette");
-    cudaDeviceSynchronize();
-}
-
-void OperationWrapper::applyLineIntegralConvolution(float *d_data, const float *flowU, const float *flowV, int width, int height, int channels, int steps) {
-    dim3 gridSize, blockSize;
-    calculateGrid(width, height, gridSize, blockSize);
-
-    ::applyLineIntegralConvolution<<<gridSize, blockSize>>>(d_data, flowU, flowV, width, height, channels, steps);
-
-    checkKernelError("Apply Line Integral Palette");
-    cudaDeviceSynchronize();
-}
-
