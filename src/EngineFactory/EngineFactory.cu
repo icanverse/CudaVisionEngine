@@ -173,3 +173,20 @@ void EngineFactory::saveCurrentFrameAsPrevious() {
     cudaMemcpy(d_prev_data, d_data, totalElementCount * sizeof(float), cudaMemcpyDeviceToDevice);
 }
 
+EngineFactory& EngineFactory::loadMesh(const float3* cpu_vertices, int numVerts, const int3* cpu_indices, int numTris) {
+    this->numTriangles = numTris;
+
+    // VRAM'de köşeler (vertices) için yer ayır ve kopyala
+    size_t vertBytes = numVerts * sizeof(float3);
+    cudaMalloc(&d_vertices, vertBytes);
+    cudaMemcpy(d_vertices, cpu_vertices, vertBytes, cudaMemcpyHostToDevice);
+
+    // VRAM'de üçgen bağları (indices) için yer ayır ve kopyala
+    size_t indBytes = numTriangles * sizeof(int3);
+    cudaMalloc(&d_indices, indBytes);
+    cudaMemcpy(d_indices, cpu_indices, indBytes, cudaMemcpyHostToDevice);
+
+    std::cout << "[EngineFactory] 3D Mesh yuklendi: " << numTriangles << " ucgen." << std::endl;
+    return *this; // Zincirleme kullanım için
+}
+

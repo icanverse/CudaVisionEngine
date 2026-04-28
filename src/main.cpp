@@ -1,132 +1,104 @@
 #include <iostream>
 #include <iomanip>
 #include <chrono>
-#include <cmath>
-#include <vector>
-#include <string>
-#include <thread> // YENİ EKLENDİ: İşlemciyi uyutmak (sleep) için gerekli kütüphane
-
-// Eğer LUT okuyucu fonksiyonunu (loadCubeLUT) ayrı bir dosyaya yazdıysan buraya include et
-// #include "io/LUTLoader.h"
+#include <thread>
+#include <cuda_runtime.h>
 
 #include "EngineFactory/EngineFactory.cuh"
-#include "io/Video/Demuxer.h"
-#include "io/Video/NvDecoder.h"
+#include "Graphics/Scene.cuh"
+#include "Graphics/Renderer3D.cuh"
+
 #include "io/GlfwInteropTarget.h"
-#include "Kernels/VectorFieldVisualization2D.cuh"
 
 int main() {
-    std::cout << "[Main] ZERO-COPY Video Interop Motoru Baslatiliyor..." << std::endl;
+    std::cout << "[Main] Kivilcim Saf 3D Motor Modu Baslatiliyor..." << std::endl;
 
-    // Kendi test videonu buraya girdin
-    Demuxer demuxer("assets/movcar.mp4");
-    NvDecoder decoder;
+    // 1. EKRAN VE MOTOR BOYUTLARI (Sabit Çözünürlük)
+    int width = 1280;
+    int height = 720;
+    int channels = 3;
 
-    GlfwInteropTarget target(demuxer.getWidth(), demuxer.getHeight(), 3, "CudaVisionEngine - Fluent Video");
-    EngineFactory engine(demuxer.getWidth(), demuxer.getHeight(), 3);
-
-    // ==============================================================================
-    // 1. OYUN DÖNGÜSÜ (GAME LOOP) ÖNCESİ HAZIRLIK (PRE-BAKING)
-    // ==============================================================================
-    std::vector<float> lutData;
-    int lutSize = 0;
-
-    std::cout << "[Main] MadMax LUT Dosyasi Okunuyor..." << std::endl;
-    if (loadCubeLUT("assets/madmax.cube", lutData, lutSize)) {
-        // CPU'da okunan veriyi, GPU'daki 3D Texture Donanımına (lutTexture) Fırınla!
-        engine.init3DTextureMemory(lutData.data(), lutSize, engine.d_lutArray, engine.lutTexture);
-    } else {
-        std::cerr << "[HATA] LUT Dosyasi yuklenemedi! Varsayilan renklerle devam ediliyor." << std::endl;
-    }
-
-    uint8_t* packetData = nullptr;
-    int packetSize = 0;
-    CUdeviceptr d_nv12Frame = 0;
-    unsigned int pitch = 0;
+    // 2. GİRİŞ ÇIKIŞ VE MOTORLARI BAŞLAT
+    GlfwInteropTarget target(width, height, channels, "Kivilcim - Saf 3D Render");
+    EngineFactory visionEngine(width, height, channels);
+    Renderer3D graphicsRenderer(width, height, channels);
 
     // ==============================================================================
-    // YENİ EKLENDİ: HIZ SINIRLAYICI AYARLARI (FRAME PACING)
+    // 3. SAHNEYİ KUR
     // ==============================================================================
-    double targetVideoFPS = 60.0; // Videonun orijinal hızı (Genelde 24, 30 veya 60 olur)
-    auto target_frame_duration = std::chrono::duration<double, std::milli>(1000.0 / targetVideoFPS);
+    Scene myScene;
 
-    // Animasyon Değişkenleri
+    // Gemini Yıldızı Geometrisi
+    float3 starVertices[10] = {
+        { 0.0f,  0.0f,  0.25f}, { 0.0f,  0.0f, -0.25f}, { 0.0f,  0.8f,  0.0f},
+        { 0.2f,  0.2f,  0.0f},  { 0.8f,  0.0f,  0.0f},  { 0.2f, -0.2f,  0.0f},
+        { 0.0f, -0.8f,  0.0f},  {-0.2f, -0.2f,  0.0f},  {-0.8f,  0.0f,  0.0f},
+        {-0.2f,  0.2f,  0.0f}
+    };
+    int3 starIndices[16] = {
+        {0, 2, 9}, {0, 9, 8}, {0, 8, 7}, {0, 7, 6}, {0, 6, 5}, {0, 5, 4}, {0, 4, 3}, {0, 3, 2},
+        {1, 2, 3}, {1, 3, 4}, {1, 4, 5}, {1, 5, 6}, {1, 6, 7}, {1, 7, 8}, {1, 8, 9}, {1, 9, 2}
+    };
+
+    // Sahneye SADECE BİR TANE kızıl obje ekliyoruz
+    myScene.setCamera({0.0f, 0.0f, -5.0f}, {0.0f, 0.0f, 0.0f}) // Kamera 5 metre geride
+           .addObject(starVertices, 10, starIndices, 16,
+                      {0.0f, 0.0f, 0.0f},        // Tam Merkeze koyduk
+                      {0.0f, 0.0f, 0.0f},
+                      {0.9f, 0.1f, 0.1f})        // Kızıl / Kırmızı Renk
+           .addLight({2.0f, 5.0f, -4.0f}, {1.0f, 1.0f, 1.0f}, 1.0f)   // Ana Işık
+           .addLight({-3.0f, -2.0f, -3.0f}, {0.2f, 0.2f, 0.9f}, 0.5f); // Sol alttan hafif mavi dolgu ışığı (Kızılı öne çıkarır)
+
+    // ==============================================================================
+    // 4. ANA RENDER DÖNGÜSÜ
+    // ==============================================================================
+    double targetFPS = 600000.0;
+    auto target_frame_duration = std::chrono::duration<double, std::milli>(1000.0 / targetFPS);
     auto t_start = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
+
     float timeTracker = 0.0f;
-    float repHue = 10.0f;
 
-    // ==============================================================================
-    // 2. ANA OYUN DÖNGÜSÜ
-    // ==============================================================================
     while (!target.shouldClose()) {
+        auto frame_start_time = std::chrono::high_resolution_clock::now();
 
-        // Kuryeden paketi al ve NVDEC donanımına fırlat
-        if (demuxer.readPacket(&packetData, &packetSize)) {
-            decoder.decodePacket(packetData, packetSize);
-            demuxer.freePacket();
+        // Animasyon zamanlayıcısı
+        timeTracker += 0.02f;
+
+        // --- A) EKRANI TEMİZLE ---
+        // Video yüklemediğimiz için, her karenin başında VRAM tuvalimizi (0) siyah ile dolduruyoruz.
+        cudaMemset(visionEngine.getDeviceData(), 0, width * height * channels * sizeof(float));
+
+        // --- B) SİMÜLASYON: Objeyi Döndür ---
+        auto& mutableObjects = const_cast<std::vector<Object3D>&>(myScene.getObjects());
+        if (!mutableObjects.empty()) {
+            mutableObjects[0].rotation.y = timeTracker;         // Kendi etrafında fırıl fırıl (Yaw)
+            mutableObjects[0].rotation.x = timeTracker * 0.3f;  // Hafifçe de öne arkaya yatsın (Pitch)
         }
 
-        // VRAM'de çözülmüş kare varsa al ve Fluent Motoruna sok!
-        while (decoder.getDecodedFrame(&d_nv12Frame, &pitch)) {
+        // --- C) GRAFİK: 3D Çizimi Yap ---
+        graphicsRenderer.render(visionEngine.getDeviceData(), myScene, timeTracker);
 
-            // YENİ EKLENDİ: O anki karenin işlenmeye başlandığı anı kaydet
-            auto frame_start_time = std::chrono::high_resolution_clock::now();
+        // --- D) EKRANA YANSIT ---
+        unsigned char* d_pbo_vram_address = target.mapVRAM();
+        visionEngine.copyToDeviceUchar(d_pbo_vram_address);
+        target.unmapAndRender();
 
-            // Dinamik Animasyon Matematiği
-            repHue = std::fmod(repHue + 2.0f, 360.0f);
-            timeTracker += 0.03f;
-            float flareX = (std::sin(timeTracker) * 350.0f) + (demuxer.getWidth() / 2.0f);
-            float flareY = (std::sin(timeTracker * 2.0f) * 200.0f) + (demuxer.getHeight() / 2.0f);
+        // FPS Sabitleyici ve Ekrana Yazdırma
+        auto frame_end_time = std::chrono::high_resolution_clock::now();
+        auto processing_time = std::chrono::duration<double, std::milli>(frame_end_time - frame_start_time);
+        if (processing_time < target_frame_duration) std::this_thread::sleep_for(target_frame_duration - processing_time);
 
-            // ==============================================================================
-            // 3. FLUENT MOTOR (GPU SİHRİ)
-            // ==============================================================================
-            engine.loadNV12DevicePointer(d_nv12Frame, pitch)
-                  .applyOpticalFlowLucasKanade(1.0f)
-                  .applyVectorFieldColoring(0.8f);
-
-            // ==============================================================================
-            // 4. VRAM TRANSFER VE RENDER (SIFIR KOPYA)
-            // ==============================================================================
-            unsigned char* d_pbo_vram_address = target.mapVRAM();
-            engine.copyToDeviceUchar(d_pbo_vram_address);
-            target.unmapAndRender();
-
-            // 5. TEMİZLİK (Memory Leak Önlemi)
-            decoder.releaseFrame(d_nv12Frame);
-
-            // ==============================================================================
-            // YENİ EKLENDİ: FPS SABİTLEYİCİ (Uyutma Mekanizması)
-            // ==============================================================================
-            auto frame_end_time = std::chrono::high_resolution_clock::now();
-            auto processing_time = std::chrono::duration<double, std::milli>(frame_end_time - frame_start_time);
-
-            // Eğer motor işini hedeflenen süreden (örneğin 33ms) daha çabuk bitirdiyse, kalan süre kadar uyu!
-            if (processing_time < target_frame_duration) {
-                std::this_thread::sleep_for(target_frame_duration - processing_time);
-            }
-
-            // Performans Ölçümü
-            frameCount++;
-            if (frameCount % 30 == 0) { // Logları 100 yerine 30 karede bir (saniyede 1) basalım
-                auto t_end = std::chrono::high_resolution_clock::now();
-                double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-
-                double avg_latency_ms = elapsed_ms / 30.0;
-                double fps = 1000.0 / avg_latency_ms;
-
-                std::cout << "Guncel FPS: " << std::fixed << std::setprecision(1) << fps
-                          << " | Gecikme: " << std::fixed << std::setprecision(2) << avg_latency_ms << " ms    \r" << std::flush;
-
-                t_start = std::chrono::high_resolution_clock::now();
-            }
+        frameCount++;
+        if (frameCount % 60 == 0) {
+            auto t_end = std::chrono::high_resolution_clock::now();
+            double fps = 1000.0 / (std::chrono::duration<double, std::milli>(t_end - t_start).count() / 60.0);
+            std::cout << "Render FPS: " << std::fixed << std::setprecision(1) << fps << "    \r" << std::flush;
+            t_start = std::chrono::high_resolution_clock::now();
         }
 
-        // İşletim sisteminin pencereyi dondurmaması için GLFW eventlerini işle
         glfwPollEvents();
     }
 
-    std::cout << "\nMotor basariyla kapatildi." << std::endl;
     return 0;
 }

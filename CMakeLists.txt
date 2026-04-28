@@ -128,6 +128,13 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         src/Wrapper/OW_ColorSpaceConverter.cu
         src/Wrapper/OW_ColorOperation.cu
         src/Wrapper/OW_OpticalFlow.cu
+        src/Kernels/Graphics/RayTracer.cu
+        include/Kernels/Graphics/RayTracer.cuh
+        include/Graphics/Scene.cuh
+        include/Graphics/Types3D.cuh
+        src/Graphics/Renderer3D.cu
+        include/Graphics/Renderer3D.cuh
+        src/Graphics/Scene.cpp
 )
 
 

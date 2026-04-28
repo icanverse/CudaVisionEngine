@@ -90,7 +90,6 @@ public:
     static void applyJetScalarColorPalette(float* d_data, const float* flowU, const float* flowV, int width, int height, int channels, float maxSpeed);
     static void applyLineIntegralConvolution(float* d_data, const float* flowU, const float* flowV, int width, int height, int channels, int steps);
 
-
 private:
     static void checkKernelError(const char* operationName) {
         cudaError_t err = cudaGetLastError();

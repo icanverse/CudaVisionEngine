@@ -31,6 +31,10 @@ private:
     float* d_flow_u;      // X yönündeki hareket vektörleri (Horizontal Flow)
     float* d_flow_v;      // Y yönündeki hareket vektörleri (Vertical Flow)
 
+    // 3D Mesh (Ağ) Verileri için
+    float3* d_vertices;
+    int3* d_indices;
+    int numTriangles;
 
     // Yardımcı Fonksiyonlar
     void allocateMemory();
@@ -136,6 +140,9 @@ public:
     EngineFactory& applyQuiverPlotVisualization(float intensity = 1.0f);
     EngineFactory& applyJetScalarColorPalette(float maxSpeed);
     EngineFactory& applyLineIntegralConvolution(int steps);
+
+    EngineFactory& loadMesh(const float3* cpu_vertices, int numVerts, const int3* cpu_indices, int numTris);
+    EngineFactory& render3DScene(float time);
 
 };
 
