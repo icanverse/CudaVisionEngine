@@ -13,6 +13,14 @@ struct PointLight {
     float intensity;
 };
 
+struct Material {
+    float3* color;      // Temel renk ~albedo
+    float* ambient;     // Ortam Işığı Yansıtma
+    float* diffuse;     // Matlık
+    float* specular;    // Parlama Şiddeti
+    float shininess;    // Parlaklık Odağı
+};
+
 struct Object3D {
     float3* d_vertices;
     int3* d_indices;
@@ -20,7 +28,9 @@ struct Object3D {
 
     float3 position;
     float3 rotation;
-    float3 ambient_color;
+
+    Material material;
+
 };
 
 #endif //CUDAVISIONENGINE_TYPES3D_CUH
