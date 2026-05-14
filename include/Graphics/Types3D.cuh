@@ -14,10 +14,10 @@ struct PointLight {
 };
 
 struct Material {
-    float3* color;      // Temel renk ~albedo
-    float* ambient;     // Ortam Işığı Yansıtma
-    float* diffuse;     // Matlık
-    float* specular;    // Parlama Şiddeti
+    float3 color;      // Temel renk ~albedo
+    float ambient;     // Ortam Işığı Yansıtma
+    float diffuse;     // Matlık
+    float specular;    // Parlama Şiddeti
     float shininess;    // Parlaklık Odağı
 };
 

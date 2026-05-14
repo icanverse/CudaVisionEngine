@@ -18,7 +18,7 @@ public:
 
     Scene& addObject(const float3* cpu_vertices, int numVerticals,
                      const int3* cpu_indices, int numTris,
-                     float3 pos, float3 rot, float3 color);
+                     float3 pos, float3 rot, Material mat);
 
     Scene& addLight(float3 pos, float3 color, float intensity);
 

@@ -99,11 +99,13 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
     }
 
     // Çarpışmalar için ışıkları topla ve çiz
+    // --- GÖREV 3: Çarpışma Varsa Işıkları Topla ve Çiz ---
+    // --- GÖREV 3: Çarpışma Varsa Işıkları Topla ve Çiz ---
     if (hit) {
         Object3D hitObj = d_objects[hit_obj_idx];
         int3 triIndices = hitObj.d_indices[hit_tri_idx];
 
-        // Çarptığımız üçgenin yüzey yönünü (Normal Vektörü) yeniden hesapla
+        // Yüzey Normalini hesapla
         float3 v0 = applyTransform(hitObj.d_vertices[triIndices.x], hitObj.position, hitObj.rotation);
         float3 v1 = applyTransform(hitObj.d_vertices[triIndices.y], hitObj.position, hitObj.rotation);
         float3 v2 = applyTransform(hitObj.d_vertices[triIndices.z], hitObj.position, hitObj.rotation);
@@ -112,30 +114,53 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         float3 edge2 = sub(v2, v0);
         float3 normal = normalizeVec(crossProduct(edge2, edge1));
 
-        // Işının tam çarptığı nokta
         float3 hitPoint = {rayO.x + rayD.x * closest_t, rayO.y + rayD.y * closest_t, rayO.z + rayD.z * closest_t};
 
-        // Bütün ışıkların bu noktaya vuran gücünü (intensity) topla
+        // --- YENİ MATERYAL MATEMATİĞİ (BLINN-PHONG) ---
+        // Kameraya giden yön vektörü (Specular hesaplaması için şarttır)
+        float3 viewDir = normalizeVec(sub(cam.position, hitPoint));
+
         float total_diffuse = 0.0f;
+        float total_specular = 0.0f; // YENİ: Parlama havuzu
+
         for (int l = 0; l < numLights; l++) {
             PointLight light = d_lights[l];
             float3 lightDir = normalizeVec(sub(light.position, hitPoint));
 
-            // Lambert aydınlatması (Dot Product)
+            // 1. Diffuse (Dağılan Işık - Mat Yüzeyler)
             float diff = dotProduct(normal, lightDir);
             if (diff > 0.0f) {
                 total_diffuse += diff * light.intensity;
+
+                // 2. Specular (Parlama - Metalik/Camsı Yüzeyler)
+                // Halfway Vektörü: Işık yönü ile Bakış yönünün tam ortası
+                float3 halfDir = normalizeVec({lightDir.x + viewDir.x, lightDir.y + viewDir.y, lightDir.z + viewDir.z});
+                float specAngle = dotProduct(normal, halfDir);
+
+                if (specAngle > 0.0f) {
+                    // Parlaklık odağı (Shininess) ile üssünü alıyoruz.
+                    // Üs büyüdükçe parlama noktası küçülür ve keskinleşir (Cam/Metal gibi).
+                    float spec = powf(specAngle, hitObj.material.shininess);
+                    total_specular += spec * light.intensity;
+                }
             }
         }
 
-        // Ortam ışığı ekle ve ışık patlamalarını sınırla (Clamp)
-        float ambient = 0.15f;
-        float final_light = total_diffuse + ambient;
+        // Materyal çarpanlarını uygula
+        float final_ambient  = hitObj.material.ambient;
+        float final_diffuse  = total_diffuse * hitObj.material.diffuse;
+        float final_specular = total_specular * hitObj.material.specular;
+
+        // Toplam ışık şiddeti
+        float final_light = final_ambient + final_diffuse + final_specular;
+
+        // Patlamaları engelle (Maksimum 1.0f olabilir)
         if (final_light > 1.0f) final_light = 1.0f;
 
-        // Objenin kendi rengiyle ışığı çarparak ekrana çiz
-        d_data[index3D]     = hitObj.ambient_color.x * final_light; // R
-        d_data[index3D + 1] = hitObj.ambient_color.y * final_light; // G
-        d_data[index3D + 2] = hitObj.ambient_color.z * final_light; // B
+        // Objenin temel rengi (Albedo) ile nihai ışığı çarp ve VRAM'e yaz
+        // Parlama (Specular) genellikle ışığın kendi rengindedir (beyaz), ama şimdilik objenin rengiyle harmanlıyoruz.
+        d_data[index3D]     = hitObj.material.color.x * final_light; // R
+        d_data[index3D + 1] = hitObj.material.color.y * final_light; // G
+        d_data[index3D + 2] = hitObj.material.color.z * final_light; // B
     }
 }
