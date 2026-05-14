@@ -19,12 +19,12 @@ Scene& Scene::clear() {
 
 Scene& Scene::addObject(const float3* cpu_vertices, int numVerts, 
                         const int3* cpu_indices, int numTris,
-                        float3 pos, float3 rot, float3 color) {
+                        float3 pos, float3 rot, Material mat) {
     Object3D obj;
     obj.numTriangles = numTris;
     obj.position = pos;
     obj.rotation = rot;
-    obj.ambient_color = color;
+    obj.material = mat;
 
     cudaMalloc((void**)&obj.d_vertices, numVerts * sizeof(float3));
     cudaMemcpy(obj.d_vertices, cpu_vertices, numVerts * sizeof(float3), cudaMemcpyHostToDevice);
