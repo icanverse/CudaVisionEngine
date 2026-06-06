@@ -2,37 +2,71 @@
 #include <iomanip>
 #include <chrono>
 #include <thread>
+#include <fstream> // DOSYA OKUMA İÇİN EKLENDİ
+#include <string>
 #include <cuda_runtime.h>
 
+// MOTOR BAŞLIK DOSYALARI
 #include "EngineFactory/EngineFactory.cuh"
 #include "Graphics/Scene.cuh"
 #include "Graphics/Renderer3D.cuh"
 
+// CANLI AKIŞ VE EKRAN ÇIKTISI BAŞLIKLARI
+#include "io/NetworkStream.h"
+#include "io/Video/NvDecoder.h"
 #include "io/GlfwInteropTarget.h"
 
+// NVIDIA Optimus sürücüsünü bu EXE için ayrık GPU'yu (RTX 4070) kullanmaya zorlar
+#ifdef _WIN32
+extern "C" {
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+}
+#endif
+
+// --- YENİ: GÜVENLİ URL OKUYUCU FONKSİYON ---
+std::string getRtspUrlFromFile(const std::string& filename) {
+    std::ifstream file(filename);
+    std::string url;
+    if (file.is_open()) {
+        std::getline(file, url);
+        file.close();
+    } else {
+        std::cerr << "[Hata] " << filename << " dosyasi bulunamadi!" << std::endl;
+        std::cerr << "[Bilgi] Lutfen proje ana dizininde bir '" << filename << "' dosyasi olusturup icine RTSP linkini yapistirin." << std::endl;
+        exit(1); // Dosya yoksa programı güvenli bir şekilde durdur
+    }
+    return url;
+}
+
 int main() {
-    std::cout << "[Main] Kivilcim Saf 3D Motor Modu Baslatiliyor..." << std::endl;
+    std::cout << "[Main] Kivilcim Canli Telefon Yayini Modu Baslatiliyor..." << std::endl;
 
     // 0. CUDA ZORLA BAŞLATMA
     cudaSetDevice(0);
     cudaFree(0);
 
-    // 1. EKRAN VE MOTOR BOYUTLARI
+    // 1. CANLI AKIŞ ADRESİ (GÜVENLİ OKUMA)
+    // URL artık kodun içinde değil, dışarıdaki bir text dosyasından okunuyor!
+    std::string rtspUrl = getRtspUrlFromFile("NetworkConfig.txt");
+
+    std::cout << "[Main] Telefona baglaniliyor: " << rtspUrl << std::endl;
+    NetworkStream phoneInput(rtspUrl);
+    NvDecoder decoder;
+
     int width = 1280;
     int height = 720;
     int channels = 3;
 
-    // 2. MOTORLARI BAŞLAT
+    // 2. MOTORLARI VE PENCEREYİ BAŞLAT
     EngineFactory visionEngine(width, height, channels);
     Renderer3D graphicsRenderer(width, height, channels);
-    GlfwInteropTarget target(width, height, channels, "Kivilcim - Sabit Kamera & Eksen Testi");
+    GlfwInteropTarget target(width, height, channels, "Kivilcim - Canli Telefon AR Entegrasyonu");
 
     // ==============================================================================
     // 3. SAHNEYİ KUR VE GEOMETRİLERİ TANIMLA
     // ==============================================================================
     Scene myScene;
 
-    // A) Gemini Yıldızı Geometrisi
     float3 starVertices[10] = {
         { 0.0f,  0.0f,  0.25f}, { 0.0f,  0.0f, -0.25f}, { 0.0f,  0.8f,  0.0f},
         { 0.2f,  0.2f,  0.0f},  { 0.8f,  0.0f,  0.0f},  { 0.2f, -0.2f,  0.0f},
@@ -44,7 +78,6 @@ int main() {
         {1, 2, 3}, {1, 3, 4}, {1, 4, 5}, {1, 5, 6}, {1, 6, 7}, {1, 7, 8}, {1, 8, 9}, {1, 9, 2}
     };
 
-    // B) EKSEN GİZMO GEOMETRİSİ (Z eksenine doğru uzanan ince uzun bir çubuk)
     float3 stickVertices[8] = {
         {-0.02f, -0.02f, 0.0f}, { 0.02f, -0.02f, 0.0f}, { 0.02f,  0.02f, 0.0f}, {-0.02f,  0.02f, 0.0f},
         {-0.02f, -0.02f, 3.0f}, { 0.02f, -0.02f, 3.0f}, { 0.02f,  0.02f, 3.0f}, {-0.02f,  0.02f, 3.0f}
@@ -54,79 +87,71 @@ int main() {
         {3,2,6}, {3,6,7}, {0,3,7}, {0,7,4}, {1,5,6}, {1,6,2}
     };
 
-    // C) MATERYALLER
     Material redPlastic = {{0.9f, 0.1f, 0.1f}, 0.1f, 0.8f, 0.3f, 16.0f};
     Material blueMetal  = {{0.2f, 0.4f, 0.9f}, 0.1f, 0.4f, 1.0f, 128.0f};
+    Material axisRed   = {{1.0f, 0.0f, 0.0f}, 0.8f, 0.2f, 0.0f, 1.0f};
+    Material axisGreen = {{0.0f, 1.0f, 0.0f}, 0.8f, 0.2f, 0.0f, 1.0f};
+    Material axisBlue  = {{0.0f, 0.0f, 1.0f}, 0.8f, 0.2f, 0.0f, 1.0f};
 
-    Material axisRed   = {{1.0f, 0.0f, 0.0f}, 0.8f, 0.2f, 0.0f, 1.0f}; // X Ekseni Rengi
-    Material axisGreen = {{0.0f, 1.0f, 0.0f}, 0.8f, 0.2f, 0.0f, 1.0f}; // Y Ekseni Rengi
-    Material axisBlue  = {{0.0f, 0.0f, 1.0f}, 0.8f, 0.2f, 0.0f, 1.0f}; // Z Ekseni Rengi
-
-    // D) SAHNEYE DİZİLİM
-    // Kamerayı tamamen STATİK hale getirdik: Konum sabit, hafifçe aşağı doğru bakıyor (-0.27 radyan Pitch)
-    myScene.setCamera({0.0f, 2.0f, -7.0f}, {-0.27f, 0.0f, 0.0f})
-           // Yıldızlar
+    myScene.setCamera({0.0f, 1.5f, -6.0f}, {-0.22f, 0.0f, 0.0f})
            .addObject(starVertices, 10, starIndices, 16, {-1.5f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, redPlastic)
            .addObject(starVertices, 10, starIndices, 16, { 1.5f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, blueMetal)
-           // Eksen çubukları (Tam merkezde statik duruyorlar)
            .addObject(stickVertices, 8, stickIndices, 12, {0.0f, 0.0f, 0.0f}, {0.0f, -1.5708f, 0.0f}, axisRed)
            .addObject(stickVertices, 8, stickIndices, 12, {0.0f, 0.0f, 0.0f}, {-1.5708f, 0.0f, 0.0f}, axisGreen)
            .addObject(stickVertices, 8, stickIndices, 12, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, axisBlue)
-           // Işıklar
            .addLight({0.0f, 5.0f, -4.0f}, {1.0f, 1.0f, 1.0f}, 1.2f)
            .addLight({-3.0f, -2.0f, -3.0f}, {0.2f, 0.2f, 0.9f}, 0.5f);
 
     // ==============================================================================
-    // 4. ANA RENDER DÖNGÜSÜ
+    // 4. ANA CANLI AKIŞ DÖNGÜSÜ
     // ==============================================================================
-    double targetFPS = 600000.0;
-    auto target_frame_duration = std::chrono::duration<double, std::milli>(1000.0 / targetFPS);
+    AVPacket packet;
+    av_init_packet(&packet);
+
     auto t_start = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
     float timeTracker = 0.0f;
 
+    std::cout << "[Main] Canli dongu basladi. Gecikmesiz render aktif." << std::endl;
+
     while (!target.shouldClose()) {
-        auto frame_start_time = std::chrono::high_resolution_clock::now();
         timeTracker += 0.02f;
 
-        // EKRANI TEMİZLE
-        cudaMemset(visionEngine.getDeviceData(), 0, width * height * channels * sizeof(float));
-
-        // OBJELERİ DÖNDÜR
-        auto& mutableObjects = const_cast<std::vector<Object3D>&>(myScene.getObjects());
-
-        // Sadece yıldızlar dönüyor, eksenler sabit kalıyor
-        if (mutableObjects.size() >= 2) {
-            mutableObjects[0].rotation.y = timeTracker;
-            mutableObjects[0].rotation.x = timeTracker * 0.3f;
-            mutableObjects[1].rotation.y = -timeTracker;
-            mutableObjects[1].rotation.x = timeTracker * 0.3f;
+        if (phoneInput.readLivePacket(&packet)) {
+            decoder.decodePacket(packet.data, packet.size);
+            av_packet_unref(&packet);
         }
 
-        // DİKKAT: Kamera güncelleme kodu döngü içinden tamamen kaldırıldı!
-        // Kamera, yukarıda setCamera ile atadığımız sabit koordinatta bekliyor.
+        CUdeviceptr d_nv12Frame = 0;
+        unsigned int pitch = 0;
 
-        // GRAFİK ÇİZİMİ
-        graphicsRenderer.render(visionEngine.getDeviceData(), myScene, timeTracker);
+        while (decoder.getDecodedFrame(&d_nv12Frame, &pitch)) {
+            visionEngine.loadNV12DevicePointer(d_nv12Frame, pitch);
 
-        // EKRANA YANSIT
-        unsigned char* d_pbo_vram_address = target.mapVRAM();
-        visionEngine.copyToDeviceUchar(d_pbo_vram_address);
-        target.unmapAndRender();
+            auto& mutableObjects = const_cast<std::vector<Object3D>&>(myScene.getObjects());
+            if (mutableObjects.size() >= 2) {
+                mutableObjects[0].rotation.y = timeTracker;
+                mutableObjects[0].rotation.x = timeTracker * 0.3f;
+                mutableObjects[1].rotation.y = -timeTracker;
+                mutableObjects[1].rotation.x = timeTracker * 0.3f;
+            }
 
-        // FPS Hesaplama
-        auto frame_end_time = std::chrono::high_resolution_clock::now();
-        auto processing_time = std::chrono::duration<double, std::milli>(frame_end_time - frame_start_time);
-        if (processing_time < target_frame_duration) std::this_thread::sleep_for(target_frame_duration - processing_time);
+            graphicsRenderer.render(visionEngine.getDeviceData(), myScene, timeTracker);
 
-        frameCount++;
-        if (frameCount % 60 == 0) {
-            auto t_end = std::chrono::high_resolution_clock::now();
-            double fps = 1000.0 / (std::chrono::duration<double, std::milli>(t_end - t_start).count() / 60.0);
-            std::cout << "Render FPS: " << std::fixed << std::setprecision(1) << fps << "    \r" << std::flush;
-            t_start = std::chrono::high_resolution_clock::now();
+            unsigned char* d_pbo_vram_address = target.mapVRAM();
+            visionEngine.copyToDeviceUchar(d_pbo_vram_address);
+            target.unmapAndRender();
+
+            decoder.releaseFrame(d_nv12Frame);
+
+            frameCount++;
+            if (frameCount % 60 == 0) {
+                auto t_end = std::chrono::high_resolution_clock::now();
+                double fps = 1000.0 / (std::chrono::duration<double, std::milli>(t_end - t_start).count() / 60.0);
+                std::cout << "Live AR FPS: " << std::fixed << std::setprecision(1) << fps << "    \r" << std::flush;
+                t_start = std::chrono::high_resolution_clock::now();
+            }
         }
-
         glfwPollEvents();
     }
 
