@@ -136,6 +136,10 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         include/Graphics/Renderer3D.cuh
         src/Graphics/Scene.cpp
         include/io/NetworkStream.h
+        include/io/Graphics/ObjectLoader.h
+        include/io/Graphics/SceneBuilder.h
+        include/io/Graphics/KvlcmParser.h
+        include/io/Graphics/SceneDescription.h
 )
 
 

@@ -76,6 +76,16 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
     for (int objIdx = 0; objIdx < numObjects; objIdx++) {
         Object3D obj = d_objects[objIdx];
 
+        // BOUNDING SPHERE CULLING)
+        float3 oc = sub(rayO, obj.position);
+        float b = dotProduct(oc, rayD);
+        float radius = 5.0f; // Şimdilik objenin kapladığı tahmini yarıçap
+        float c = dotProduct(oc, oc) - (radius * radius);
+
+        // Matematiksel olarak ışın bu küreyi ıskaladıysa, alttaki "for" döngüsüne hiç girme.
+        if (b * b - c < 0.0f) continue;
+        // --------
+
         // Tüm üçgenler
         for (int triIdx = 0; triIdx < obj.numTriangles; triIdx++) {
             int3 triIndices = obj.d_indices[triIdx];
