@@ -26,6 +26,26 @@ Scene& Scene::addObject(const float3* cpu_vertices, int numVerts,
     obj.rotation = rot;
     obj.material = mat;
 
+    // --- AABB KUTU HESAPLAMASI ---
+    // Her obje sahneye eklenirken köşelerine bakıp maksimum/minimum hacmini hesaplıyoruz
+    float3 minB = { 999999.0f,  999999.0f,  999999.0f};
+    float3 maxB = {-999999.0f, -999999.0f, -999999.0f};
+
+    for (int i = 0; i < numVerts; i++) {
+        float3 v = cpu_vertices[i];
+        if (v.x < minB.x) minB.x = v.x;
+        if (v.y < minB.y) minB.y = v.y;
+        if (v.z < minB.z) minB.z = v.z;
+
+        if (v.x > maxB.x) maxB.x = v.x;
+        if (v.y > maxB.y) maxB.y = v.y;
+        if (v.z > maxB.z) maxB.z = v.z;
+    }
+
+    obj.aabbMin = minB;
+    obj.aabbMax = maxB;
+    // ------------------------------------------
+
     cudaMalloc((void**)&obj.d_vertices, numVerts * sizeof(float3));
     cudaMemcpy(obj.d_vertices, cpu_vertices, numVerts * sizeof(float3), cudaMemcpyHostToDevice);
 

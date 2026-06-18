@@ -76,17 +76,40 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
     for (int objIdx = 0; objIdx < numObjects; objIdx++) {
         Object3D obj = d_objects[objIdx];
 
-        // BOUNDING SPHERE CULLING)
-        float3 oc = sub(rayO, obj.position);
-        float b = dotProduct(oc, rayD);
-        float radius = 5.0f; // Şimdilik objenin kapladığı tahmini yarıçap
-        float c = dotProduct(oc, oc) - (radius * radius);
+        // --- DİNAMİK AABB KUTU ÇARPIŞMA TESTİ (SLAB METHOD) ---
+        // 1. Işını (Ray) objenin yerel uzayına (Local Space) tersine döndür ve taşı
+        float3 localRayO = sub(rayO, obj.position);
+        localRayO = rotateZ(localRayO, -obj.rotation.z);
+        localRayO = rotateY(localRayO, -obj.rotation.y);
+        localRayO = rotateX(localRayO, -obj.rotation.x);
 
-        // Matematiksel olarak ışın bu küreyi ıskaladıysa, alttaki "for" döngüsüne hiç girme.
-        if (b * b - c < 0.0f) continue;
-        // --------
+        float3 localRayD = rotateZ(rayD, -obj.rotation.z);
+        localRayD = rotateY(localRayD, -obj.rotation.y);
+        localRayD = rotateX(localRayD, -obj.rotation.x);
 
-        // Tüm üçgenler
+        // 2. Kutu çarpışma testi (Sıfıra bölünme IEEE standartlarında Infinity olarak tolere edilir)
+        float3 invD = {1.0f / localRayD.x, 1.0f / localRayD.y, 1.0f / localRayD.z};
+
+        float tx1 = (obj.aabbMin.x - localRayO.x) * invD.x;
+        float tx2 = (obj.aabbMax.x - localRayO.x) * invD.x;
+        float tmin = fminf(tx1, tx2);
+        float tmax = fmaxf(tx1, tx2);
+
+        float ty1 = (obj.aabbMin.y - localRayO.y) * invD.y;
+        float ty2 = (obj.aabbMax.y - localRayO.y) * invD.y;
+        tmin = fmaxf(tmin, fminf(ty1, ty2));
+        tmax = fminf(tmax, fmaxf(ty1, ty2));
+
+        float tz1 = (obj.aabbMin.z - localRayO.z) * invD.z;
+        float tz2 = (obj.aabbMax.z - localRayO.z) * invD.z;
+        tmin = fmaxf(tmin, fminf(tz1, tz2));
+        tmax = fminf(tmax, fmaxf(tz1, tz2));
+
+        // 3. Işın, objeye tam oturan bu kutuyu ıskaladıysa üçgenleri HİÇ hesaplama ve döngüyü geç!
+        if (tmax < tmin || tmax < 0.0f) continue;
+        // ---------------------------------------------------------
+
+        // Tüm üçgenler (Artık sadece bu kutunun içine bakan pikseller bu ağır döngüye girer)
         for (int triIdx = 0; triIdx < obj.numTriangles; triIdx++) {
             int3 triIndices = obj.d_indices[triIdx];
 
@@ -108,8 +131,6 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         }
     }
 
-    // Çarpışmalar için ışıkları topla ve çiz
-    // --- GÖREV 3: Çarpışma Varsa Işıkları Topla ve Çiz ---
     // --- GÖREV 3: Çarpışma Varsa Işıkları Topla ve Çiz ---
     if (hit) {
         Object3D hitObj = d_objects[hit_obj_idx];
@@ -131,7 +152,7 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         float3 viewDir = normalizeVec(sub(cam.position, hitPoint));
 
         float total_diffuse = 0.0f;
-        float total_specular = 0.0f; // YENİ: Parlama havuzu
+        float total_specular = 0.0f; // Parlama havuzu
 
         for (int l = 0; l < numLights; l++) {
             PointLight light = d_lights[l];
@@ -143,13 +164,10 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
                 total_diffuse += diff * light.intensity;
 
                 // 2. Specular (Parlama - Metalik/Camsı Yüzeyler)
-                // Halfway Vektörü: Işık yönü ile Bakış yönünün tam ortası
                 float3 halfDir = normalizeVec({lightDir.x + viewDir.x, lightDir.y + viewDir.y, lightDir.z + viewDir.z});
                 float specAngle = dotProduct(normal, halfDir);
 
                 if (specAngle > 0.0f) {
-                    // Parlaklık odağı (Shininess) ile üssünü alıyoruz.
-                    // Üs büyüdükçe parlama noktası küçülür ve keskinleşir (Cam/Metal gibi).
                     float spec = powf(specAngle, hitObj.material.shininess);
                     total_specular += spec * light.intensity;
                 }
@@ -168,7 +186,6 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         if (final_light > 1.0f) final_light = 1.0f;
 
         // Objenin temel rengi (Albedo) ile nihai ışığı çarp ve VRAM'e yaz
-        // Parlama (Specular) genellikle ışığın kendi rengindedir (beyaz), ama şimdilik objenin rengiyle harmanlıyoruz.
         d_data[index3D]     = hitObj.material.color.x * final_light; // R
         d_data[index3D + 1] = hitObj.material.color.y * final_light; // G
         d_data[index3D + 2] = hitObj.material.color.z * final_light; // B

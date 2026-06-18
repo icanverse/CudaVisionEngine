@@ -29,6 +29,10 @@ struct Object3D {
     float3 position;
     float3 rotation;
 
+    // aabb sınırları (performans için)
+    float3 aabbMin; // Kutunun minimum x,y,z koordinatları
+    float3 aabbMax; // Kutunun maksimum x,y,z koordinatları
+
     Material material;
 
 };

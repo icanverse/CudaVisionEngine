@@ -38,6 +38,8 @@ void Renderer3D::render(float* d_data, const Scene& scene, float time) {
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x,
                   (height + blockSize.y - 1) / blockSize.y);
 
+    cudaMemset(d_data, 0, width * height * channels * sizeof(float));
+
     renderMultiObjectMesh<<<gridSize, blockSize>>>(d_data, width, height, channels,
                                                     d_objects, numObjects,
                                                     d_lights, numLights,
