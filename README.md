@@ -15,6 +15,8 @@ Bu proje aşağıdaki açık kaynak kütüphaneleri kullanmaktadır:
 ## ✨ Özellikler ve Yetenekler
 Motorun sunduğu yetenekler OperationWrapper üzerinden aşağıdaki kategorilere ayrılmıştır:
 
+![Normal Debug Görseli](mdSource/NormalDebug.gif)
+
 ```cpp
 // Temel İşlemler
 // Görüntü verilerini float formatına normalize/denormalize etme

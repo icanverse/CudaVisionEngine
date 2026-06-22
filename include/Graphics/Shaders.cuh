@@ -129,5 +129,91 @@ __device__ inline void sFresnelShield(float& r, float& g, float& b,
 
 }
 
+__device__ inline void sTronGrid(float& r, float& g, float& b, float3 hitPoint, float gridSize, float thickness) {
+    // Izgara negatif uzayda bozulmasın
+    float absX = fabsf(hitPoint.x);
+    float absY = fabsf(hitPoint.y);
+    float absZ = fabsf(hitPoint.z);
+
+    // Uzay koordinatları modu
+    float modX = fmodf(absX, gridSize);
+    float modY = fmodf(absY, gridSize);
+    float modZ = fmodf(absZ, gridSize);
+
+    //
+    if (modX < thickness || modY < thickness || modZ < thickness) {
+        r = 0.0f;
+        g = 1.0f;
+        b = 0.5f;
+    }
+}
+
+__device__ inline void sRadarPing(float& r, float& g, float& b, float3 hitPoint, float3 objPos, float time, float freq, float speed) {
+    // Işığın çaptığı noktanın, nesne merkezine uzaklık farkı
+    float dx = hitPoint.x - objPos.x;
+    float dy = hitPoint.y - objPos.y;
+    float dz = hitPoint.z - objPos.z;
+
+    float dist = sqrtf((dx * dx) + (dy * dy) + (dz * dz));
+
+    float wave = sinf(dist * freq - time * speed);
+    wave = (wave + 1.0f) * 0.5f;
+
+    wave = powf(wave, 20.0f);
+
+    r += wave * 0.2f;
+    g += wave * 1.0f;
+    b += wave * 0.2f;
+}
+
+__device__ inline float pseudoRandomHash(float val) {
+    float s = sinf(val * 12.9898f) * 43758.5453f;
+    return s - floorf(s);
+}
+
+__device__ inline void sMatrixJitter(float& r, float& g, float& b, float3 hitPoint, float time, float intensity) {
+    // Objenin yüksekliğini şeritlere bölüyoruz.
+    // 10.0f şeritlerin kalınlığını belirler.
+    float band = floorf(hitPoint.y * 10.0f);
+
+    float noise = pseudoRandomHash(band + time * intensity);
+
+    if (noise > 0.95f) {
+        r = 1.0f;
+        g = 0.0f;
+        b = pseudoRandomHash(time * hitPoint.x);
+    }
+}
+
+__device__ inline float pseudoRandomHash3D(float3 p) {
+    float s = sinf(p.x * 12.9898f + p.y * 78.233f + p.z * 37.719f) * 43758.5453f;
+    return s - floorf(s);
+}
+
+__device__ inline void sThanosSnapDissolve(float& r, float& g, float& b, float3 hitPoint, float time, float speed) {
+    float3 noiseScale = {hitPoint.x * 3.0f, hitPoint.y * 3.0f, hitPoint.z * 3.0f};
+
+    // Bu pikselin uzaysal gürültüsünü alıyoruz.
+    float noise = pseudoRandomHash3D(noiseScale);
+
+    // Zamanla 0.0'dan 1.2'ye kadar çıkan ve başa saran bir "Erime Seviyesi"
+    float dissolveProgress = fmodf(time * speed, 1.2f);
+
+    // Eğer doku değeri erime seviyesinin altında kaldıysa, o piksel ölmüştür.
+    if (noise < dissolveProgress) {
+        r = 0.0f;
+        g = 0.0f;
+        b = 0.0f;
+    }
+    // Burn Edge Piksel henüz ölmemiş ama ölüme çok yakınsa (0.05f tolerans)
+    else if (noise < dissolveProgress + 0.05f) {
+        r = 1.0f;
+        g = 0.4f;
+        b = 0.0f;
+    }
+}
+
+
+
 
 #endif //CUDAVISIONENGINE_SHADERS_CUH

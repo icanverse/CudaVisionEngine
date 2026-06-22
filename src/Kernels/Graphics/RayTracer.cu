@@ -190,20 +190,64 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         if (final_light > 1.0f) final_light = 1.0f;
 
         // Objenin temel rengi (Albedo) ile nihai ışığı çarp
+        // Objenin temel rengi (Albedo) ile nihai ışığı çarp
         float final_r = hitObj.material.color.x * final_light;
         float final_g = hitObj.material.color.y * final_light;
         float final_b = hitObj.material.color.z * final_light;
 
-        // --- MATERYAL SHADER YÖNETİCİSİ (JUMP TABLE) ---
-        switch (hitObj.material.effectType) {
-            case 1: // GLOW (Nefes Alan Parlama)
-                sGlow(final_r, final_g, final_b, time, hitObj.material.effectParam1);
-                break;
-            case 2: // SCANLINES (Siber-Akışkan Enerji Halkaları)
-                sScanlines(final_r, final_g, final_b, hitPoint.y, time, hitObj.material.effectParam1, hitObj.material.effectParam2);
-                break;
-            default:
-                break;
+        // --- MATERYAL SHADER YÖNETİCİSİ (BITMASK) ---
+
+        if (hitObj.material.effectFlags & 1) { // 1. Bit (GLOW)
+            sGlow(final_r, final_g, final_b, time, hitObj.material.glowSpeed);
+        }
+
+        if (hitObj.material.effectFlags & 2) { // 2. Bit (SCANLINES)
+            sScanlines(final_r, final_g, final_b, hitPoint.y, time, hitObj.material.scanFreq, hitObj.material.scanSpeed);
+        }
+
+        if (hitObj.material.effectFlags & 4) { // 3. Bit (TRON GRID)
+            sTronGrid(final_r, final_g, final_b, hitPoint, hitObj.material.tronGridSize, hitObj.material.tronThickness);
+        }
+
+        if (hitObj.material.effectFlags & 8) { // 4. Bit (RADAR PING)
+            sRadarPing(final_r, final_g, final_b, hitPoint, hitObj.position, time, hitObj.material.radarFreq, hitObj.material.radarSpeed);
+        }
+
+        if (hitObj.material.effectFlags & 16) { // 5. Bit (MATRIX JITTER)
+            sMatrixJitter(final_r, final_g, final_b, hitPoint, time, hitObj.material.jitterIntensity);
+        }
+
+        if (hitObj.material.effectFlags & 32) { // 6. Bit (DISSOLVE)
+            sThanosSnapDissolve(final_r, final_g, final_b, hitPoint, time, hitObj.material.dissolveSpeed);
+        }
+        if (hitObj.material.effectFlags & 64) { // 7. Bit
+            sNegativeZone(final_r, final_g, final_b);
+        }
+
+        if (hitObj.material.effectFlags & 128) { // 8. Bit
+            sRGBDisco(final_r, final_g, final_b, time);
+        }
+
+        if (hitObj.material.effectFlags & 256) { // 9. Bit
+            sNormalDebugger(final_r, final_g, final_b, normal.x, normal.y, normal.z);
+        }
+
+        if (hitObj.material.effectFlags & 512) { // 10. Bit
+            sCelShading(final_r, final_g, final_b, final_light, hitObj.material.celBands);
+        }
+
+        if (hitObj.material.effectFlags & 1024) { // 11. Bit
+            // Parametreler: r, g, b, depth (uzaklık), start, end, color
+            sLinearDepthFog(final_r, final_g, final_b, closest_t, hitObj.material.fogStart, hitObj.material.fogEnd, hitObj.material.fogColor);
+        }
+
+        if (hitObj.material.effectFlags & 2048) { // 12. Bit
+            // Üs (d) değerini varsayılan olarak 2 (Karesel sis) veriyoruz
+            sExponentialDepthFog(final_r, final_g, final_b, closest_t, hitObj.material.fogDensity, hitObj.material.fogColor, 2);
+        }
+
+        if (hitObj.material.effectFlags & 4096) { // 13. Bit
+            sFresnelShield(final_r, final_g, final_b, normal.x, normal.y, normal.z, viewDir.x, viewDir.y, viewDir.z, hitObj.material.shieldColor, hitObj.material.rimPower, hitObj.material.rimIntensity);
         }
 
         // Renklerin patlayıp VRAM'i çökertmesini engelle (Maks 1.0)

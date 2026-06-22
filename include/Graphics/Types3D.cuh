@@ -1,6 +1,7 @@
 #ifndef CUDAVISIONENGINE_TYPES3D_CUH
 #define CUDAVISIONENGINE_TYPES3D_CUH
 #include <vector_types.h>
+#include <stdint.h> // uint32_t kullanabilmek için EKLENDİ
 
 struct Camera {
     float3 position;
@@ -12,17 +13,28 @@ struct PointLight {
     float3 color;
     float intensity;
 };
-
 struct Material {
     float3 color;      // Temel renk ~albedo
     float ambient;     // Ortam Işığı Yansıtma
     float diffuse;     // Matlık
     float specular;    // Parlama Şiddeti
-    float shininess;    // Parlaklık Odağı
+    float shininess;   // Parlaklık Odağı
 
-    int effectType;
-    float effectParam1;
-    float effectParam2;
+    // --- YENİ BİTMASK SİSTEMİ ---
+    uint32_t effectFlags;
+
+    // Efekt Parametreleri Havuzu
+    float glowSpeed;
+    float scanFreq; float scanSpeed;
+    float tronGridSize; float tronThickness;
+    float radarFreq; float radarSpeed;
+    float jitterIntensity;
+    float dissolveSpeed;
+
+    // YENİ EFEKT PARAMETRELERİ
+    float celBands;
+    float fogStart; float fogEnd; float fogDensity; float3 fogColor;
+    float3 shieldColor; float rimPower; float rimIntensity;
 };
 
 struct Object3D {
@@ -33,12 +45,10 @@ struct Object3D {
     float3 position;
     float3 rotation;
 
-    // aabb sınırları (performans için)
-    float3 aabbMin; // Kutunun minimum x,y,z koordinatları
-    float3 aabbMax; // Kutunun maksimum x,y,z koordinatları
+    float3 aabbMin;
+    float3 aabbMax;
 
     Material material;
-
 };
 
 #endif //CUDAVISIONENGINE_TYPES3D_CUH

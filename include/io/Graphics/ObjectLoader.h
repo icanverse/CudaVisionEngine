@@ -60,10 +60,14 @@ private:
 
         outMat = {{1.0f, 0.0f, 1.0f}, 0.1f, 0.8f, 0.2f, 32.0f}; // Hata durumu için pembe
 
-        // --- Efekt değişkenleri için varsayılan atamalar ---
-        outMat.effectType = 0;
-        outMat.effectParam1 = 0.0f;
-        outMat.effectParam2 = 0.0f;
+        // --- YENİ: Efekt değişkenlerini sıfırla ---
+        outMat.effectFlags = 0;
+        outMat.glowSpeed = 0.0f;
+        outMat.scanFreq = 0.0f; outMat.scanSpeed = 0.0f;
+        outMat.tronGridSize = 0.0f; outMat.tronThickness = 0.0f;
+        outMat.radarFreq = 0.0f; outMat.radarSpeed = 0.0f;
+        outMat.jitterIntensity = 0.0f;
+        outMat.dissolveSpeed = 0.0f;
 
         std::string line, token;
         while (std::getline(file, line)) {
@@ -76,18 +80,57 @@ private:
             else if (token == "SPECULAR") iss >> outMat.specular;
             else if (token == "SHININESS") iss >> outMat.shininess;
 
-            // --- EFEKT OKUYUCU BLOK ---
+            // --- YENİ BİTMASK EFEKT OKUYUCU BLOK ---
             else if (token == "EFFECT") {
                 std::string effectName;
                 iss >> effectName;
                 if (effectName == "GLOW") {
-                    outMat.effectType = 1;      // Glow ID'si
-                    iss >> outMat.effectParam1; // Glow Hızı
+                    outMat.effectFlags |= 1;
+                    iss >> outMat.glowSpeed;
                 }
                 else if (effectName == "SCANLINE") {
-                    outMat.effectType = 2;      // Scanline ID'si
-                    iss >> outMat.effectParam1; // Frekans
-                    iss >> outMat.effectParam2; // Hız
+                    outMat.effectFlags |= 2;
+                    iss >> outMat.scanFreq;
+                    iss >> outMat.scanSpeed;
+                }
+                else if (effectName == "TRON_GRID") {
+                    outMat.effectFlags |= 4;
+                    iss >> outMat.tronGridSize;
+                    iss >> outMat.tronThickness;
+                }
+                else if (effectName == "RADAR_PING") {
+                    outMat.effectFlags |= 8;
+                    iss >> outMat.radarFreq;
+                    iss >> outMat.radarSpeed;
+                }
+                else if (effectName == "MATRIX_JITTER") {
+                    outMat.effectFlags |= 16;
+                    iss >> outMat.jitterIntensity;
+                }
+                else if (effectName == "DISSOLVE") {
+                    outMat.effectFlags |= 32;
+                    iss >> outMat.dissolveSpeed;
+                }
+
+                // --- YENİ EKLENEN EFEKTLER ---
+                else if (effectName == "NEGATIVE_ZONE") { outMat.effectFlags |= 64; }
+                else if (effectName == "RGB_DISCO") { outMat.effectFlags |= 128; }
+                else if (effectName == "NORMAL_DEBUG") { outMat.effectFlags |= 256; }
+                else if (effectName == "CEL_SHADING") {
+                    outMat.effectFlags |= 512;
+                    iss >> outMat.celBands;
+                }
+                else if (effectName == "LINEAR_FOG") {
+                    outMat.effectFlags |= 1024;
+                    iss >> outMat.fogStart >> outMat.fogEnd >> outMat.fogColor.x >> outMat.fogColor.y >> outMat.fogColor.z;
+                }
+                else if (effectName == "EXP_FOG") {
+                    outMat.effectFlags |= 2048;
+                    iss >> outMat.fogDensity >> outMat.fogColor.x >> outMat.fogColor.y >> outMat.fogColor.z;
+                }
+                else if (effectName == "FRESNEL") {
+                    outMat.effectFlags |= 4096;
+                    iss >> outMat.shieldColor.x >> outMat.shieldColor.y >> outMat.shieldColor.z >> outMat.rimPower >> outMat.rimIntensity;
                 }
             }
         }
