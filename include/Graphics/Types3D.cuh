@@ -19,6 +19,10 @@ struct Material {
     float diffuse;     // Matlık
     float specular;    // Parlama Şiddeti
     float shininess;    // Parlaklık Odağı
+
+    int effectType;
+    float effectParam1;
+    float effectParam2;
 };
 
 struct Object3D {

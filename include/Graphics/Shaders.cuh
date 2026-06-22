@@ -1,0 +1,133 @@
+#ifndef CUDAVISIONENGINE_SHADERS_CUH
+#define CUDAVISIONENGINE_SHADERS_CUH
+
+#pragma once
+#include <cuda_runtime.h>
+#include <math_functions.h>
+
+// ==========================================
+// KIVILCIM SHADER LABORATUVARI
+// Buradaki tüm fonksiyonlar GPU çekirdeklerinde paralel çalışır
+// ==========================================
+
+__device__ inline void sGlow(float& r, float& g, float& b, float time, float speed) {
+    // Nefes alan yumuşak bir parlama (Pulse)
+    float pulse = (sinf(time * speed) + 1.0f) * 0.5f;
+    float emissive = pulse * 0.4f; // Kendi içinden parlama şiddeti
+
+    r += emissive;
+    g += emissive;
+    b += emissive;
+}
+
+__device__ inline void sScanlines(float& r, float& g, float& b, float yPos, float time, float freq, float speed) {
+    // Yüksekliğe ve zamana bağlı akan siber-enerji halkaları
+    float wave = (sinf(yPos * freq + time * speed) + 1.0f) * 0.5f;
+    wave = powf(wave, 8.0f); // Çizgileri jilet gibi keskinleştir
+
+    r += wave * 0.8f;
+    g += wave * 0.8f;
+    b += wave * 0.8f;
+}
+
+__device__ inline void sNegativeZone(float& r, float& g, float& b) {
+    r = 1 - r;
+    g = 1 - g;
+    b = 1 - b;
+}
+
+__device__ inline void sRGBDisco(float & r, float& g, float& b, float time) {
+    float r_wave = (sinf(time) + 1.0f) * 0.5f;
+    float g_wave = (sinf(time * 2.0f) + 1.0f) * 0.5f;
+    float b_wave = (sinf(time * 4.0f) + 1.0f) * 0.5f;
+
+    r = r * r_wave;
+    g = g * g_wave;
+    b = b * b_wave;
+}
+
+// nx, ny, nz normaller
+__device__ inline void sNormalDebugger(float& r, float& g, float& b, float nx, float ny, float nz) {
+    r = (nx + 1.0f) * 0.5f;
+    g = (ny + 1.0f) * 0.5f;
+    b = (nz + 1.0f) * 0.5f;
+}
+
+__device__ inline void sCelShading(float& r, float& g, float& b, float light_intensity, float bands) {
+    light_intensity = fmaxf(0.0f, fminf(1.0f, light_intensity));
+    float stepped_light = floorf(light_intensity * bands) / bands;
+    stepped_light = fmaxf(0.2f, stepped_light);
+
+    r *= stepped_light;
+    g *= stepped_light;
+    b *= stepped_light;
+
+}
+
+// th1 > th2 > th3 KONTROLÜ UNUTULMASIN
+__device__ inline void sCelShading_withThreshold(float& r, float& g, float& b, float light_intensity, float3 threshold_band, float4 threshold_mul) {
+    float intensity;
+
+    if (light_intensity > threshold_band.x) {
+        intensity = threshold_mul.x;
+    } else if (light_intensity > threshold_band.y) {
+        intensity = threshold_mul.y;
+    } else if (light_intensity > threshold_band.z) {
+        intensity = threshold_mul.z;
+    } else {
+        intensity = threshold_mul.w;
+    }
+
+    r *= intensity;
+    g *= intensity;
+    b *= intensity;
+}
+
+__device__ inline void sLinearDepthFog(float& r, float& g, float& b, float depth, float fog_start, float fog_end, float3 fog_color) {
+    float fog_factor = (depth - fog_start) / (fog_end - fog_start);
+    fog_factor = fminf(1.0f,fmaxf(0.0f, fog_factor));
+
+    r = (1.0 - fog_factor) * r + (fog_factor) * fog_color.x;
+    g = (1.0 - fog_factor) * r + (fog_factor) * fog_color.y;
+    b = (1.0 - fog_factor) * r + (fog_factor) * fog_color.z;
+}
+
+__device__ inline void sExponentialDepthFog(float& r, float& g, float& b, float depth, float fog_density, float3 fog_color, int d) {
+    float dd = depth * fog_density;
+    float power_val = dd;
+
+    if (d == 2) {
+        power_val = dd * dd;
+    } else if (d > 2) {
+        power_val = powf(dd, (float)d);
+    }
+
+    float fog_factor = 1.0f - expf(-power_val);
+    fog_factor = fmaxf(0.0f, fminf(1.0f, fog_factor));
+
+    r = (1.0f - fog_factor) * r + (fog_factor) * fog_color.x;
+    g = (1.0f - fog_factor) * g + (fog_factor) * fog_color.y;
+    b = (1.0f - fog_factor) * b + (fog_factor) * fog_color.z;
+}
+
+__device__ inline void sFresnelShield(float& r, float& g, float& b,
+                                      float nx, float ny, float nz,
+                                      float vx, float vy, float vz,
+                                      float3 shield_color,
+                                      float rim_power,
+                                      float rim_intensity) {
+
+    float v_dot_n = (nx * vx) + (ny * vy) + (nz * vz);
+    v_dot_n = fmaxf(0.0f, fminf(1.0f, v_dot_n));
+
+    float rim = 1 - v_dot_n;
+    float sharp_rim = powf(rim, rim_power);
+
+    r += sharp_rim * shield_color.x * rim_intensity;
+    g += sharp_rim * shield_color.y * rim_intensity;
+    b += sharp_rim * shield_color.z * rim_intensity;
+
+}
+
+
+#endif //CUDAVISIONENGINE_SHADERS_CUH

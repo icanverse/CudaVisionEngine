@@ -60,6 +60,11 @@ private:
 
         outMat = {{1.0f, 0.0f, 1.0f}, 0.1f, 0.8f, 0.2f, 32.0f}; // Hata durumu için pembe
 
+        // --- Efekt değişkenleri için varsayılan atamalar ---
+        outMat.effectType = 0;
+        outMat.effectParam1 = 0.0f;
+        outMat.effectParam2 = 0.0f;
+
         std::string line, token;
         while (std::getline(file, line)) {
             if (line.empty() || line[0] == '#') continue;
@@ -70,6 +75,21 @@ private:
             else if (token == "DIFFUSE") iss >> outMat.diffuse;
             else if (token == "SPECULAR") iss >> outMat.specular;
             else if (token == "SHININESS") iss >> outMat.shininess;
+
+            // --- EFEKT OKUYUCU BLOK ---
+            else if (token == "EFFECT") {
+                std::string effectName;
+                iss >> effectName;
+                if (effectName == "GLOW") {
+                    outMat.effectType = 1;      // Glow ID'si
+                    iss >> outMat.effectParam1; // Glow Hızı
+                }
+                else if (effectName == "SCANLINE") {
+                    outMat.effectType = 2;      // Scanline ID'si
+                    iss >> outMat.effectParam1; // Frekans
+                    iss >> outMat.effectParam2; // Hız
+                }
+            }
         }
         return true;
     }

@@ -41,4 +41,4 @@ __device__ inline bool intersectTriangle(float3 rayO, float3 rayD, float3 v0, fl
 __global__ void renderMesh(float* d_data, int width, int height, int channels,
                            float3* d_vertices, int3* d_indices, int numTriangles, float time);
 
-#endif //CUDAVISIONENGINE_RAYTRACER_CUH
+#endif //CUDAVISIONENGINE_RAYTRACER_CUHrR

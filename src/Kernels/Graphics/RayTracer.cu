@@ -1,6 +1,10 @@
 #include "../Kernels/Graphics/RayTracer.cuh"
 #include "../../include/Graphics/Types3D.cuh" // Objelerin Struct yapılarını tanıyabilmesi için
 
+// YENİ: Kendi oluşturduğun Shader Laboratuvarı!
+#include "../Graphics/Shaders.cuh"
+#include "Graphics/Shaders.cuh"
+
 /// Rotasyon Yardımcıları
 __device__ inline float3 normalizeVec(float3 v) {
     float length = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -185,9 +189,26 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         // Patlamaları engelle (Maksimum 1.0f olabilir)
         if (final_light > 1.0f) final_light = 1.0f;
 
-        // Objenin temel rengi (Albedo) ile nihai ışığı çarp ve VRAM'e yaz
-        d_data[index3D]     = hitObj.material.color.x * final_light; // R
-        d_data[index3D + 1] = hitObj.material.color.y * final_light; // G
-        d_data[index3D + 2] = hitObj.material.color.z * final_light; // B
+        // Objenin temel rengi (Albedo) ile nihai ışığı çarp
+        float final_r = hitObj.material.color.x * final_light;
+        float final_g = hitObj.material.color.y * final_light;
+        float final_b = hitObj.material.color.z * final_light;
+
+        // --- MATERYAL SHADER YÖNETİCİSİ (JUMP TABLE) ---
+        switch (hitObj.material.effectType) {
+            case 1: // GLOW (Nefes Alan Parlama)
+                sGlow(final_r, final_g, final_b, time, hitObj.material.effectParam1);
+                break;
+            case 2: // SCANLINES (Siber-Akışkan Enerji Halkaları)
+                sScanlines(final_r, final_g, final_b, hitPoint.y, time, hitObj.material.effectParam1, hitObj.material.effectParam2);
+                break;
+            default:
+                break;
+        }
+
+        // Renklerin patlayıp VRAM'i çökertmesini engelle (Maks 1.0)
+        d_data[index3D]     = fminf(final_r, 1.0f); // R
+        d_data[index3D + 1] = fminf(final_g, 1.0f); // G
+        d_data[index3D + 2] = fminf(final_b, 1.0f); // B
     }
 }

@@ -140,6 +140,8 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         include/io/Graphics/SceneBuilder.h
         include/io/Graphics/KvlcmParser.h
         include/io/Graphics/SceneDescription.h
+        src/Kernels/Graphics/Shaders/Shaders.cu
+        include/Graphics/Shaders.cuh
 )
 
 
