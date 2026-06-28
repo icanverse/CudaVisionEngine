@@ -4,6 +4,7 @@
 // YENİ: Kendi oluşturduğun Shader Laboratuvarı!
 #include "../Graphics/Shaders.cuh"
 #include "Graphics/Shaders.cuh"
+#include "Graphics/ElementaryNodes.h"
 
 /// Rotasyon Yardımcıları
 __device__ inline float3 normalizeVec(float3 v) {
@@ -43,7 +44,6 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
                                       Object3D* d_objects, int numObjects,
                                       PointLight* d_lights, int numLights,
                                       Camera cam, float time) {
-
     int dx = threadIdx.x + blockIdx.x * blockDim.x;
     int dy = threadIdx.y + blockIdx.y * blockDim.y;
 
@@ -248,6 +248,22 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
 
         if (hitObj.material.effectFlags & 4096) { // 13. Bit
             sFresnelShield(final_r, final_g, final_b, normal.x, normal.y, normal.z, viewDir.x, viewDir.y, viewDir.z, hitObj.material.shieldColor, hitObj.material.rimPower, hitObj.material.rimIntensity);
+        }
+
+        if (hitObj.material.effectFlags & 16384) {
+            // Sensör pozisyonu olarak RayTracer'ın ana kamerasının başlangıç noktasını (ray.origin) gönderiyoruz!
+            sLidarScanner(final_r, final_g, final_b, hitPoint, viewDir, time);
+        }
+        if (hitObj.material.effectFlags & 32768) {
+            nStaticTV(final_r, final_g, final_b, hitPoint, time, hitObj.material.noiseScale);
+        }
+
+        if (hitObj.material.effectFlags & 65536) {
+            sQuantumGlitch(final_r, final_g, final_b, hitPoint, time, hitObj.material.noiseScale);
+        }
+
+        if (hitObj.material.effectFlags & 131072) {
+            sPureWhiteNoise(final_r, final_g, final_b, hitPoint, time, hitObj.material.noiseScale);
         }
 
         // Renklerin patlayıp VRAM'i çökertmesini engelle (Maks 1.0)

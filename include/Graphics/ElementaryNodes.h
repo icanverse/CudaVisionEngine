@@ -2,7 +2,6 @@
 #define CUDAVISIONENGINE_ELEMENTARYNODES_H
 
 #include <cuda_runtime.h>
-#include <math_functions.h>
 #include "Shaders.cuh"
 #include "ColorSpaceConverter.cuh"
 
@@ -33,6 +32,13 @@ __device__ inline float nWhiteNoise(float3 pos, float scale, float time) {
     return pseudoRandomHash3D(p);
 }
 
+__device__ inline void sPureWhiteNoise(float &r, float &g, float &b, float3 hitPoint, float time, float noiseScale) {
+    float noiseVal = nWhiteNoise(hitPoint, noiseScale, time);
+    r = noiseVal;
+    g = noiseVal;
+    b = noiseVal;
+}
+
 __device__ inline void nStaticTV(float &r, float &g, float &b, float3 hitPoint, float time, float noiseScale) {
     float noiseVal = nWhiteNoise(hitPoint, noiseScale, time);
 
@@ -60,7 +66,7 @@ __device__ inline void sQuantumGlitch(float &r, float &g, float &b, float3 hitPo
 // >> Gradyan Düğümleri
 //
 
-__device__ inline float3 nLerpColor(float3 coloA, float3 coloB, float t) {
+__device__ inline float3 nLerpColor(float3 colorA, float3 colorB, float t) {
     float safe_t = fmaxf(0.0f, fminf(t, 1.0f));
 
     return make_float3(

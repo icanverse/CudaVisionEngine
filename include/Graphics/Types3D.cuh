@@ -36,6 +36,8 @@ struct Material {
     float celBands;
     float fogStart; float fogEnd; float fogDensity; float3 fogColor;
     float3 shieldColor; float rimPower; float rimIntensity;
+    float noiseScale;
+
 };
 
 struct Object3D {

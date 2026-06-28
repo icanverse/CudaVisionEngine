@@ -132,6 +132,21 @@ private:
                     outMat.effectFlags |= 4096;
                     iss >> outMat.shieldColor.x >> outMat.shieldColor.y >> outMat.shieldColor.z >> outMat.rimPower >> outMat.rimIntensity;
                 }
+                else if (effectName == "LIDAR") {
+                    outMat.effectFlags |= 16384; // 15. Bit
+                }
+                else if (effectName == "STATICTV") {
+                    outMat.effectFlags |= 32768; // 16. Bit
+                    iss >> outMat.noiseScale;
+                }
+                else if (effectName == "GLITCH") {
+                    outMat.effectFlags |= 65536; // 17. Bit
+                    iss >> outMat.noiseScale;
+                }
+                else if (effectName == "WHITENOISE") {
+                    outMat.effectFlags |= 131072; // 18. Bit
+                    iss >> outMat.noiseScale;
+                }
             }
         }
         return true;
