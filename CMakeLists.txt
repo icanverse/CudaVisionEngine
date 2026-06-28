@@ -142,6 +142,7 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         include/io/Graphics/SceneDescription.h
         src/Kernels/Graphics/Shaders/Shaders.cu
         include/Graphics/Shaders.cuh
+        include/Graphics/ElementaryNodes.h
 )
 
 

@@ -30,6 +30,7 @@ struct Material {
     float radarFreq; float radarSpeed;
     float jitterIntensity;
     float dissolveSpeed;
+    float liquidFreq; float liquidSpeed;
 
     // YENİ EFEKT PARAMETRELERİ
     float celBands;

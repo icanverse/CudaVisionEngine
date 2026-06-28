@@ -7,7 +7,6 @@
 
 // ==========================================
 // KIVILCIM SHADER LABORATUVARI
-// Buradaki tüm fonksiyonlar GPU çekirdeklerinde paralel çalışır
 // ==========================================
 
 __device__ inline void sGlow(float& r, float& g, float& b, float time, float speed) {
@@ -213,7 +212,63 @@ __device__ inline void sThanosSnapDissolve(float& r, float& g, float& b, float3 
     }
 }
 
+__device__ inline void sLiquidFlow(float& r, float& g, float& b, float3 hitPoint, float time, float flowSpeed, float freq) {
+    float mov = time * flowSpeed;
 
+    float f_x = sinf(hitPoint.x * freq + mov * 0.8f);
+    float f_y = sinf(hitPoint.y * freq + mov * 0.4f);
+    float f_z = sinf(hitPoint.z * freq + mov * 0.5f);
+
+    float sum = f_x + f_y + f_z;
+    sum = (sum + 3) / 6;
+
+    sum = powf(sum, 3.0f);
+
+    r += sum * 0.1f;
+    g += sum * 0.8f;
+    b += sum * 1.0f;
+
+}
+
+__device__ inline void s3DRetroVoxel(float &r, float &g, float &b, float3 hitPoint, float gridSize) {
+    float vX = floorf(hitPoint.x * gridSize) / gridSize;
+    float vY = floorf(hitPoint.y * gridSize) / gridSize;
+    float vZ = floorf(hitPoint.z * gridSize) / gridSize;
+    float3 v = {vX, vY, vZ};
+
+    float noiseVal = pseudoRandomHash3D(v);
+    noiseVal = noiseVal * 0.3f + 0.6f;
+
+    r += noiseVal;
+    g += noiseVal;
+    b += noiseVal;
+
+}
+
+__device__ inline void sLidarScanner(float &r, float &g, float &b, float3 hitPoint, float3 sensorPos, float time) {
+
+    float dx = hitPoint.x - sensorPos.x;
+    float dy = hitPoint.y - sensorPos.y;
+    float dz = hitPoint.z - sensorPos.z;
+    float distance = sqrtf(dx*dx + dy*dy + dz*dz);
+
+    float freq = 5.0f;
+    float speed = 10.0f;
+
+    float wave = sinf(distance * freq - time * speed);
+    wave = (wave + 1.0f) * 0.5f;
+
+    float sharpness = 30.0f;
+    wave = powf(wave, sharpness);
+
+    r *= 0.05f;
+    g *= 0.1f;
+    b *= 0.1f;
+
+    r += wave * 0.1f;
+    g += wave * 2.5f;
+    b += wave * 0.8f;
+}
 
 
 #endif //CUDAVISIONENGINE_SHADERS_CUH
