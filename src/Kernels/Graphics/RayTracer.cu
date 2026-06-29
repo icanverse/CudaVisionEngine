@@ -1,19 +1,14 @@
 #include "../Kernels/Graphics/RayTracer.cuh"
-#include "../../include/Graphics/Types3D.cuh" // Objelerin Struct yapılarını tanıyabilmesi için
-
-// YENİ: Kendi oluşturduğun Shader Laboratuvarı!
+#include "../../include/Graphics/Types3D.cuh"
 #include "../Graphics/Shaders.cuh"
 #include "Graphics/Shaders.cuh"
 #include "Graphics/ElementaryNodes.h"
 
-/// Rotasyon Yardımcıları
 __device__ inline float3 normalizeVec(float3 v) {
     float length = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
     if (length > 0.00001f) return {v.x / length, v.y / length, v.z / length};
     return {0.0f, 0.0f, 0.0f};
 }
-
-/// Rotasyon Matrisleri -- euler açıları
 
 __device__ inline float3 rotateX(float3 v, float angle) {
     float cosA = cosf(angle), sinA = sinf(angle);
@@ -29,10 +24,7 @@ __device__ inline float3 rotateZ(float3 v, float angle) {
     float cosA = cosf(angle), sinA = sinf(angle);
     return {v.x * cosA - v.y * sinA, v.x * sinA + v.y * cosA, v.z};
 }
-/// /// ///
 
-
-// Bir köşeyi önce objenin açısına göre döndürür, sonra objenin uzaydaki konumuna öteler
 __device__ inline float3 applyTransform(float3 v, float3 pos, float3 rot) {
     v = rotateX(v, rot.x);
     v = rotateY(v, rot.y);
@@ -52,36 +44,39 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
     int index1D = dy * width + dx;
     int index3D = index1D * channels;
 
-    // --- GÖREV 1: Kamera ve Işın Kurulumu ---
-    float aspect = (float)width / (float)height;                // Yatay Dikey Oranı
-    float u = ((float)dx / (float)width) * 2.0f - 1.0f;         // u ve v için [-1,1] sıkıştırma
-    float v = -(((float)dy / (float)height) * 2.0f - 1.0f);     // Kartezyen ile ekranda y artış yönü farklı olduğundan
+    float aspect = (float)width / (float)height;
+    float u = ((float)dx / (float)width) * 2.0f - 1.0f;
+    float v = -(((float)dy / (float)height) * 2.0f - 1.0f);
     u = u * aspect;
 
-    // Işının başlangıcı kamera koordinatıdır.
-    float3 rayO = cam.position;
+    float3 rayO;
+    float3 rayD;
 
-    // Işının yönü
-    // :: Kameradan 1 birim uzağa izdüşüm yaratır.
-    float3 rayD = normalizeVec({u, v, 1.0f});
+    if (cam.isOrthographic) {
+        rayD = {0.0f, 0.0f, 1.0f};
+        float scale = cam.orthoSize;
+        rayO = {cam.position.x + (u * scale), cam.position.y + (v * scale / aspect), cam.position.z};
 
-    // Kameranın açısına göre ışınların yönünü büküyoruz
-    rayD = rotateX(rayD, cam.rotation.x);   // pitch - aşağı/yukarı
-    rayD = rotateY(rayD, cam.rotation.y);   // yaw - sağa/sola
-    rayD = rotateZ(rayD, cam.rotation.z);   // roll - eğilme
+        rayD = rotateX(rayD, cam.rotation.x);
+        rayD = rotateY(rayD, cam.rotation.y);
+        rayD = rotateZ(rayD, cam.rotation.z);
+    } else {
+        rayO = cam.position;
+        rayD = normalizeVec({u, v, 1.0f});
 
-    float closest_t = 999999.0f;    // En yakın mesafe bu olsun varsayımı
+        rayD = rotateX(rayD, cam.rotation.x);
+        rayD = rotateY(rayD, cam.rotation.y);
+        rayD = rotateZ(rayD, cam.rotation.z);
+    }
+
+    float closest_t = 999999.0f;
     bool hit = false;
+    int hit_obj_idx = -1;
+    int hit_tri_idx = -1;
 
-    int hit_obj_idx = -1; // Çarpılan obje indeksi
-    int hit_tri_idx = -1; // Çarpılan objenin üçgeni indeksi
-
-    // Tüm objeler
     for (int objIdx = 0; objIdx < numObjects; objIdx++) {
         Object3D obj = d_objects[objIdx];
 
-        // --- DİNAMİK AABB KUTU ÇARPIŞMA TESTİ (SLAB METHOD) ---
-        // 1. Işını (Ray) objenin yerel uzayına (Local Space) tersine döndür ve taşı
         float3 localRayO = sub(rayO, obj.position);
         localRayO = rotateZ(localRayO, -obj.rotation.z);
         localRayO = rotateY(localRayO, -obj.rotation.y);
@@ -91,7 +86,6 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         localRayD = rotateY(localRayD, -obj.rotation.y);
         localRayD = rotateX(localRayD, -obj.rotation.x);
 
-        // 2. Kutu çarpışma testi (Sıfıra bölünme IEEE standartlarında Infinity olarak tolere edilir)
         float3 invD = {1.0f / localRayD.x, 1.0f / localRayD.y, 1.0f / localRayD.z};
 
         float tx1 = (obj.aabbMin.x - localRayO.x) * invD.x;
@@ -109,20 +103,15 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         tmin = fmaxf(tmin, fminf(tz1, tz2));
         tmax = fminf(tmax, fmaxf(tz1, tz2));
 
-        // 3. Işın, objeye tam oturan bu kutuyu ıskaladıysa üçgenleri HİÇ hesaplama ve döngüyü geç!
         if (tmax < tmin || tmax < 0.0f) continue;
-        // ---------------------------------------------------------
 
-        // Tüm üçgenler (Artık sadece bu kutunun içine bakan pikseller bu ağır döngüye girer)
         for (int triIdx = 0; triIdx < obj.numTriangles; triIdx++) {
             int3 triIndices = obj.d_indices[triIdx];
 
-            // Lokal uzaydaki modelin tüm köşelerini globale (sahneye) göre büker
             float3 v0 = applyTransform(obj.d_vertices[triIndices.x], obj.position, obj.rotation);
             float3 v1 = applyTransform(obj.d_vertices[triIndices.y], obj.position, obj.rotation);
             float3 v2 = applyTransform(obj.d_vertices[triIndices.z], obj.position, obj.rotation);
 
-            // Işın ile üçgen kesişiyor mu :: Möller-Trumbore algoritması
             float current_t;
             if (intersectTriangle(rayO, rayD, v0, v1, v2, current_t)) {
                 if (current_t < closest_t) {
@@ -135,12 +124,10 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         }
     }
 
-    // --- GÖREV 3: Çarpışma Varsa Işıkları Topla ve Çiz ---
     if (hit) {
         Object3D hitObj = d_objects[hit_obj_idx];
         int3 triIndices = hitObj.d_indices[hit_tri_idx];
 
-        // Yüzey Normalini hesapla
         float3 v0 = applyTransform(hitObj.d_vertices[triIndices.x], hitObj.position, hitObj.rotation);
         float3 v1 = applyTransform(hitObj.d_vertices[triIndices.y], hitObj.position, hitObj.rotation);
         float3 v2 = applyTransform(hitObj.d_vertices[triIndices.z], hitObj.position, hitObj.rotation);
@@ -150,24 +137,19 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
         float3 normal = normalizeVec(crossProduct(edge2, edge1));
 
         float3 hitPoint = {rayO.x + rayD.x * closest_t, rayO.y + rayD.y * closest_t, rayO.z + rayD.z * closest_t};
-
-        // --- YENİ MATERYAL MATEMATİĞİ (BLINN-PHONG) ---
-        // Kameraya giden yön vektörü (Specular hesaplaması için şarttır)
         float3 viewDir = normalizeVec(sub(cam.position, hitPoint));
 
         float total_diffuse = 0.0f;
-        float total_specular = 0.0f; // Parlama havuzu
+        float total_specular = 0.0f;
 
         for (int l = 0; l < numLights; l++) {
             PointLight light = d_lights[l];
             float3 lightDir = normalizeVec(sub(light.position, hitPoint));
 
-            // 1. Diffuse (Dağılan Işık - Mat Yüzeyler)
             float diff = dotProduct(normal, lightDir);
             if (diff > 0.0f) {
                 total_diffuse += diff * light.intensity;
 
-                // 2. Specular (Parlama - Metalik/Camsı Yüzeyler)
                 float3 halfDir = normalizeVec({lightDir.x + viewDir.x, lightDir.y + viewDir.y, lightDir.z + viewDir.z});
                 float specAngle = dotProduct(normal, halfDir);
 
@@ -178,97 +160,71 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
             }
         }
 
-        // Materyal çarpanlarını uygula
         float final_ambient  = hitObj.material.ambient;
         float final_diffuse  = total_diffuse * hitObj.material.diffuse;
         float final_specular = total_specular * hitObj.material.specular;
 
-        // Toplam ışık şiddeti
         float final_light = final_ambient + final_diffuse + final_specular;
-
-        // Patlamaları engelle (Maksimum 1.0f olabilir)
         if (final_light > 1.0f) final_light = 1.0f;
 
-        // Objenin temel rengi (Albedo) ile nihai ışığı çarp
-        // Objenin temel rengi (Albedo) ile nihai ışığı çarp
         float final_r = hitObj.material.color.x * final_light;
         float final_g = hitObj.material.color.y * final_light;
         float final_b = hitObj.material.color.z * final_light;
 
-        // --- MATERYAL SHADER YÖNETİCİSİ (BITMASK) ---
-
-        if (hitObj.material.effectFlags & 1) { // 1. Bit (GLOW)
+        if (hitObj.material.effectFlags & 1) {
             sGlow(final_r, final_g, final_b, time, hitObj.material.glowSpeed);
         }
-
-        if (hitObj.material.effectFlags & 2) { // 2. Bit (SCANLINES)
+        if (hitObj.material.effectFlags & 2) {
             sScanlines(final_r, final_g, final_b, hitPoint.y, time, hitObj.material.scanFreq, hitObj.material.scanSpeed);
         }
-
-        if (hitObj.material.effectFlags & 4) { // 3. Bit (TRON GRID)
+        if (hitObj.material.effectFlags & 4) {
             sTronGrid(final_r, final_g, final_b, hitPoint, hitObj.material.tronGridSize, hitObj.material.tronThickness);
         }
-
-        if (hitObj.material.effectFlags & 8) { // 4. Bit (RADAR PING)
+        if (hitObj.material.effectFlags & 8) {
             sRadarPing(final_r, final_g, final_b, hitPoint, hitObj.position, time, hitObj.material.radarFreq, hitObj.material.radarSpeed);
         }
-
-        if (hitObj.material.effectFlags & 16) { // 5. Bit (MATRIX JITTER)
+        if (hitObj.material.effectFlags & 16) {
             sMatrixJitter(final_r, final_g, final_b, hitPoint, time, hitObj.material.jitterIntensity);
         }
-
-        if (hitObj.material.effectFlags & 32) { // 6. Bit (DISSOLVE)
+        if (hitObj.material.effectFlags & 32) {
             sThanosSnapDissolve(final_r, final_g, final_b, hitPoint, time, hitObj.material.dissolveSpeed);
         }
-        if (hitObj.material.effectFlags & 64) { // 7. Bit
+        if (hitObj.material.effectFlags & 64) {
             sNegativeZone(final_r, final_g, final_b);
         }
-
-        if (hitObj.material.effectFlags & 128) { // 8. Bit
+        if (hitObj.material.effectFlags & 128) {
             sRGBDisco(final_r, final_g, final_b, time);
         }
-
-        if (hitObj.material.effectFlags & 256) { // 9. Bit
+        if (hitObj.material.effectFlags & 256) {
             sNormalDebugger(final_r, final_g, final_b, normal.x, normal.y, normal.z);
         }
-
-        if (hitObj.material.effectFlags & 512) { // 10. Bit
+        if (hitObj.material.effectFlags & 512) {
             sCelShading(final_r, final_g, final_b, final_light, hitObj.material.celBands);
         }
-
-        if (hitObj.material.effectFlags & 1024) { // 11. Bit
-            // Parametreler: r, g, b, depth (uzaklık), start, end, color
+        if (hitObj.material.effectFlags & 1024) {
             sLinearDepthFog(final_r, final_g, final_b, closest_t, hitObj.material.fogStart, hitObj.material.fogEnd, hitObj.material.fogColor);
         }
-
-        if (hitObj.material.effectFlags & 2048) { // 12. Bit
-            // Üs (d) değerini varsayılan olarak 2 (Karesel sis) veriyoruz
+        if (hitObj.material.effectFlags & 2048) {
             sExponentialDepthFog(final_r, final_g, final_b, closest_t, hitObj.material.fogDensity, hitObj.material.fogColor, 2);
         }
-
-        if (hitObj.material.effectFlags & 4096) { // 13. Bit
+        if (hitObj.material.effectFlags & 4096) {
             sFresnelShield(final_r, final_g, final_b, normal.x, normal.y, normal.z, viewDir.x, viewDir.y, viewDir.z, hitObj.material.shieldColor, hitObj.material.rimPower, hitObj.material.rimIntensity);
         }
-
         if (hitObj.material.effectFlags & 16384) {
-            // Sensör pozisyonu olarak RayTracer'ın ana kamerasının başlangıç noktasını (ray.origin) gönderiyoruz!
-            sLidarScanner(final_r, final_g, final_b, hitPoint, viewDir, time);
+            sLidarScanner(final_r, final_g, final_b, hitPoint, rayO, time);
         }
         if (hitObj.material.effectFlags & 32768) {
             nStaticTV(final_r, final_g, final_b, hitPoint, time, hitObj.material.noiseScale);
         }
-
         if (hitObj.material.effectFlags & 65536) {
             sQuantumGlitch(final_r, final_g, final_b, hitPoint, time, hitObj.material.noiseScale);
         }
-
         if (hitObj.material.effectFlags & 131072) {
             sPureWhiteNoise(final_r, final_g, final_b, hitPoint, time, hitObj.material.noiseScale);
         }
 
-        // Renklerin patlayıp VRAM'i çökertmesini engelle (Maks 1.0)
-        d_data[index3D]     = fminf(final_r, 1.0f); // R
-        d_data[index3D + 1] = fminf(final_g, 1.0f); // G
-        d_data[index3D + 2] = fminf(final_b, 1.0f); // B
+        d_data[index3D]     = fminf(final_r, 1.0f);
+        d_data[index3D + 1] = fminf(final_g, 1.0f);
+        d_data[index3D + 2] = fminf(final_b, 1.0f);
     }
 }

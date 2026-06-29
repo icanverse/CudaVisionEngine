@@ -55,7 +55,11 @@ int main() {
     // 2. SAHNEYİ DOSYADAN YÜKLE (Tüm o devasa array'ler bu satırın içine hapsoldu!)
     // ==============================================================================
     // main.cpp içindeki o satırı şu şekilde güncelle:
-    Scene myScene = SceneBuilder::build("assets-graphics/scenes/scene_01.kvlcm");
+    Scene myScene = SceneBuilder::build("assets-graphics/scenes/scene_ui.kvlcm");
+    Camera cam = myScene.getCamera();
+    cam.isOrthographic = true;  // 3D'yi kapat, 2D'yi aç
+    cam.orthoSize = 10.0f;       // Ekrana sığma oranı (gerekirse 3.0 veya 8.0 yapabilirsin)
+        // Ayarlanmış kamerayı sahneye geri ver!
     auto t_start = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
     float timeTracker = 0.0f;
@@ -69,10 +73,10 @@ int main() {
         timeTracker += 0.02f;
 
         // A) SİMÜLASYON KATI: Sahnedeki tüm objeleri kendi ekseninde yavaşça döndür
-        auto& mutableObjects = const_cast<std::vector<Object3D>&>(myScene.getObjects());
-        for (auto& obj : mutableObjects) {
-            obj.rotation.y = timeTracker;
-        }
+        // auto& mutableObjects = const_cast<std::vector<Object3D>&>(myScene.getObjects());
+        // for (auto& obj : mutableObjects) {
+        //     obj.rotation.y = timeTracker;
+        // }
 
         // B) GRAFİK KATI: 3D objeleri siyah tuval üzerine çiz
         graphicsRenderer.render(visionEngine.getDeviceData(), myScene, timeTracker);

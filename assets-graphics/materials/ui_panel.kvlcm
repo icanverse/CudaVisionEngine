@@ -1,0 +1,19 @@
+# --- KIVILCIM 2D UI TEST MATERYALİ ---
+COLOR r 0.1 g 0.6 b 0.9
+AMBIENT 0.6
+DIFFUSE 0.5
+SPECULAR 1.0
+SHININESS 256.0
+
+# Efektlerden SADECE BİRİNİ açarak VRAM'in 2D uzaydaki tepkisini test et:
+
+# 1. TEST: Arayüz penceresinde bozuk televizyon karıncalanması
+#EFFECT STATICTV 20.0
+
+# 2. TEST: Arayüz penceresinde yeşil/mavi hologram bozulmaları
+# EFFECT GLITCH 15.0
+
+# 3. TEST: Saf Matematiksel Gürültü (Siyah-Beyaz test ekranı)
+# EFFECT WHITENOISE 15.0
+
+EFFECT LIQUID 1.0 3.0

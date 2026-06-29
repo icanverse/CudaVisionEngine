@@ -6,6 +6,9 @@
 struct Camera {
     float3 position;
     float3 rotation;
+
+    bool isOrthographic = false; // true yaparsan 2D UI moduna geçer
+    float orthoSize = 10.0f;     // Ekrana ne kadar alan sığacağı (Zoom)
 };
 
 struct PointLight {
