@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 4.1)
 
 # LANGUAGES kısmına 'CUDA' eklemek zorunludur!
-# Bu satır CMake'e "nvcc derleyicisini bul ve kullan" emrini verir.
 project(CudaVisionEngine LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -12,48 +11,56 @@ enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
 
 # =========================================================================
-# 1. YÖNTEM: FetchContent İLE GLFW'Yİ OTOMATİK İNDİR VE DERLE (TAVSİYE EDİLEN)
+# 1. YÖNTEM: FetchContent İLE GLFW'Yİ OTOMATİK İNDİR VE DERLE
 # =========================================================================
 include(FetchContent)
-# --- A) GLFW TANIMLAMASI ---
 FetchContent_Declare(
         glfw
         GIT_REPOSITORY https://github.com/glfw/glfw.git
-        GIT_TAG 3.3.8 # Kararlı sürüm
+        GIT_TAG 3.3.8
 )
 
-# --- B) FFMPEG TANIMLAMASI ---
 FetchContent_Declare(
         ffmpeg_bins
         URL "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip"
 )
 
-
 FetchContent_MakeAvailable(ffmpeg_bins)
 FetchContent_GetProperties(ffmpeg_bins)
 set(FFMPEG_DIR ${ffmpeg_bins_SOURCE_DIR})
-
-# GLFW'nin testlerini ve örneklerini derlemeyi kapat (Hız kazanmak için)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw)
 
-# OpenGL Kütüphanesini sistemden bul (GLFW pencere açar, OpenGL çizer)
 find_package(OpenGL REQUIRED)
 # =========================================================================
 
+# --- DEAR IMGUI KAYNAK DOSYALARI ---
+set(IMGUI_DIR "${CMAKE_SOURCE_DIR}/include/ImGUI")
+set(IMGUI_BACKENDS_DIR "${CMAKE_SOURCE_DIR}/include/ImGUI/backends")
 
-# CUDA Mimarisi ayarı (native = senin ekran kartına uygun olanı seçer)
-set(CMAKE_CUDA_ARCHITECTURES "native")
+set(IMGUI_SOURCES
+        "${IMGUI_DIR}/imgui.cpp"
+        "${IMGUI_DIR}/imgui_demo.cpp"
+        "${IMGUI_DIR}/imgui_draw.cpp"
+        "${IMGUI_DIR}/imgui_tables.cpp"
+        "${IMGUI_DIR}/imgui_widgets.cpp"
+        "${IMGUI_BACKENDS_DIR}/imgui_impl_glfw.cpp"
+        "${IMGUI_BACKENDS_DIR}/imgui_impl_opengl3.cpp"
+        src/UI/MainUI.cpp
+        include/UI/MainUI.h
+)
 
 include_directories(
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/lib
         ${CUDAToolkit_INCLUDE_DIRS}
         ${FFMPEG_DIR}/include
-        ${CMAKE_SOURCE_DIR}/include/nv_sdk_interface  # Birazdan bu klasörü oluşturacağız!
+        ${CMAKE_SOURCE_DIR}/include/nv_sdk_interface
+        ${IMGUI_DIR}              # ImGui Core
+        ${IMGUI_BACKENDS_DIR}     # ImGui Backends
 )
 
 link_directories(
@@ -61,7 +68,9 @@ link_directories(
         ${FFMPEG_DIR}/lib)
 
 file(GLOB_RECURSE SOURCE_FILES "src/*.cu" "src/*.cpp")
-add_executable(CudaVisionEngine ${SOURCE_FILES}
+
+# Dikkat: IMGUI_SOURCES değişkeni buraya eklendi!
+add_executable(CudaVisionEngine ${SOURCE_FILES} ${IMGUI_SOURCES}
         src/EngineFactory/EngineFactory.cu
         include/EngineFactory/EngineFactory.cuh
         src/Kernels/ElementaryMatrixOp.cu
@@ -145,8 +154,6 @@ add_executable(CudaVisionEngine ${SOURCE_FILES}
         include/Graphics/ElementaryNodes.h
 )
 
-
-# Kütüphaneleri bağla
 target_link_libraries(CudaVisionEngine
         PRIVATE CUDA::cudart
         glfw OpenGL::GL

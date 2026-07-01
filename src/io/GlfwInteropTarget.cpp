@@ -14,34 +14,37 @@ PFNGLGENBUFFERSPROC glGenBuffersExt = nullptr;
 PFNGLBINDBUFFERPROC glBindBufferExt = nullptr;
 PFNGLBUFFERDATAPROC glBufferDataExt = nullptr;
 
+// 1. DİKKAT: Kurucu fonksiyona "cuda_pbo_resource(nullptr)" eklendi!
 GlfwInteropTarget::GlfwInteropTarget(int w, int h, int c, const std::string& title)
-    : width(w), height(h), channels(c) {
+    : width(w), height(h), channels(c), cuda_pbo_resource(nullptr) {
 
     if (!glfwInit()) exit(1);
+
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
     if (!window) exit(1);
     glfwMakeContextCurrent(window);
 
-    // V-Sync'i kapatan (FPS limitini kaldıran) o sihirli satır:
     glfwSwapInterval(0);
 
-    // OpenGL Uzantılarını GLFW üzerinden manuel yükle
     glGenBuffersExt = (PFNGLGENBUFFERSPROC)glfwGetProcAddress("glGenBuffers");
     glBindBufferExt = (PFNGLBINDBUFFERPROC)glfwGetProcAddress("glBindBuffer");
     glBufferDataExt = (PFNGLBUFFERDATAPROC)glfwGetProcAddress("glBufferData");
 
-    // ==========================================================
-    // İŞTE SİHİR BURADA: PBO (Pixel Buffer Object) OLUŞTURMA
-    // ==========================================================
     glGenBuffersExt(1, &pbo);
     glBindBufferExt(GL_PIXEL_UNPACK_BUFFER, pbo);
-
-    // VRAM'de boş bir alan ayır (Stream Draw = Sürekli güncellenecek demek)
     glBufferDataExt(GL_PIXEL_UNPACK_BUFFER, width * height * channels, NULL, GL_STREAM_DRAW);
     glBindBufferExt(GL_PIXEL_UNPACK_BUFFER, 0);
 
-    // Bu OpenGL havuzunu CUDA'ya kaydet (Köprüyü kur)
-    cudaGraphicsGLRegisterBuffer(&cuda_pbo_resource, pbo, cudaGraphicsMapFlagsWriteDiscard);
+    // ==========================================
+    // HATA YAKALAYICI EKLENDİ
+    // ==========================================
+    cudaError_t err = cudaGraphicsGLRegisterBuffer(&cuda_pbo_resource, pbo, cudaGraphicsMapFlagsWriteDiscard);
+    if (err != cudaSuccess) {
+        std::cout << "[FATAL] CUDA-GL Koprusu Kurulamadi! Hata: " << cudaGetErrorString(err) << std::endl;
+    } else {
+        std::cout << "[Basari] CUDA-GL Koprusu VRAM'e baglandi." << std::endl;
+    }
 }
 
 GlfwInteropTarget::~GlfwInteropTarget() {
@@ -51,15 +54,23 @@ GlfwInteropTarget::~GlfwInteropTarget() {
 }
 
 unsigned char* GlfwInteropTarget::mapVRAM() {
-    // CUDA'ya "Bu belleği ben kullanacağım, OpenGL dokunmasın" de
-    cudaGraphicsMapResources(1, &cuda_pbo_resource, 0);
+    // Güvenlik Kilidi 1: Pointer boşsa çökme, null döndür!
+    if (cuda_pbo_resource == nullptr) {
+        return nullptr;
+    }
+
+    // Güvenlik Kilidi 2: Eşleme sırasında hata çıkarsa çökme!
+    cudaError_t err = cudaGraphicsMapResources(1, &cuda_pbo_resource, 0);
+    if (err != cudaSuccess) {
+        std::cout << "[HATA] mapResources Patladi: " << cudaGetErrorString(err) << std::endl;
+        return nullptr;
+    }
 
     unsigned char* d_pbo_data = nullptr;
     size_t num_bytes;
-    // O havuzun VRAM'deki GERÇEK bellek adresini al
     cudaGraphicsResourceGetMappedPointer((void**)&d_pbo_data, &num_bytes, cuda_pbo_resource);
 
-    return d_pbo_data; // Bu adresi EngineFactory'ye göndereceğiz!
+    return d_pbo_data;
 }
 
 void GlfwInteropTarget::unmapAndRender() {
@@ -79,8 +90,7 @@ void GlfwInteropTarget::unmapAndRender() {
 
     glBindBufferExt(GL_PIXEL_UNPACK_BUFFER, 0);
 
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+    // Çifte Yansıtmayı (Double Buffering) iptal ettik, main.cpp hallediyor.
 }
 
 bool GlfwInteropTarget::shouldClose() {

@@ -16,6 +16,11 @@ public:
     GlfwInteropTarget(int w, int h, int c, const std::string& title);
     ~GlfwInteropTarget();
 
+    // --- YENİ EKLENEN KÖPRÜ ---
+    // ImGui'nin pencereye erişebilmesi için gerekli olan fonksiyon
+    GLFWwindow* getWindow() const { return window; }
+    // -------------------------
+
     // CUDA'nın içine yazabilmesi için VRAM'in kapısını açar ve adresi verir
     unsigned char* mapVRAM();
 
@@ -24,6 +29,5 @@ public:
 
     bool shouldClose();
 };
-
 
 #endif //CUDAVISIONENGINE_GLFWINTEROPTARGET_H
