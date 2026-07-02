@@ -49,8 +49,8 @@ set(IMGUI_SOURCES
         "${IMGUI_DIR}/imgui_widgets.cpp"
         "${IMGUI_BACKENDS_DIR}/imgui_impl_glfw.cpp"
         "${IMGUI_BACKENDS_DIR}/imgui_impl_opengl3.cpp"
-        src/UI/MainUI.cpp
-        include/UI/MainUI.h
+
+
 )
 
 include_directories(
@@ -152,6 +152,10 @@ add_executable(CudaVisionEngine ${SOURCE_FILES} ${IMGUI_SOURCES}
         src/Kernels/Graphics/Shaders/Shaders.cu
         include/Graphics/Shaders.cuh
         include/Graphics/ElementaryNodes.h
+        src/UI/MainUI.cpp
+        include/UI/MainUI.h
+        src/Compute/ParticleSystem/ParticleSystem.cu
+        include/Compute/ParticleSystem/ParticleSystem.cuh
 )
 
 target_link_libraries(CudaVisionEngine
