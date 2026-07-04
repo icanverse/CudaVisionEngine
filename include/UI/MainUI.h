@@ -1,13 +1,19 @@
-//
-// Created by Can on 1.07.2026.
-//
-
-#ifndef CUDAVISIONENGINE_MAINUI_H
-#define CUDAVISIONENGINE_MAINUI_H
-
+#pragma once
+#include <GLFW/glfw3.h>
+#include "w_RightPanel.h"
+#include "w_TopPanel.h"
 
 class MainUI {
+private:
+    TopPanel topPanel;
+    RightPanel rightPanel;
+    GLFWwindow* windowHandle;
+    unsigned int logoTextureId; // Logonun VRAM'deki adresi
+public:
+    MainUI(GLFWwindow* window);
+    ~MainUI();
+
+    void newFrame();
+    void renderPanels();
+    void renderDrawData();
 };
-
-
-#endif //CUDAVISIONENGINE_MAINUI_H

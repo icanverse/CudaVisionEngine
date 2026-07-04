@@ -49,6 +49,12 @@ set(IMGUI_SOURCES
         "${IMGUI_DIR}/imgui_widgets.cpp"
         "${IMGUI_BACKENDS_DIR}/imgui_impl_glfw.cpp"
         "${IMGUI_BACKENDS_DIR}/imgui_impl_opengl3.cpp"
+        src/UI/w_RightPanel.cpp
+        include/UI/w_RightPanel.h
+        src/UI/w_TopPanel.cpp
+        include/UI/w_TopPanel.h
+        src/io/TextureUtility/TextureUtility.cpp
+        include/io/TextureUtility/TextureUtility.h
 
 
 )

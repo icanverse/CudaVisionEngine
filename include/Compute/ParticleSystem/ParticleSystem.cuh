@@ -17,7 +17,7 @@ public:
     ParticleSystem(int count);
     ~ParticleSystem();
 
-    void update(float deltaTime);
+    void update(float deltaTime, float timeTracker);
     void draw(unsigned char* vram, int width, int height);
 
     // Çizim için veriyi dışarıya (veya OpenGL'e) açan getter
