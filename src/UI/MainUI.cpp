@@ -10,6 +10,18 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0) {
     ImGui::StyleColorsDark();
 
     ImGuiStyle& style = ImGui::GetStyle();
+
+    // --- SIRÇA GLOBAL RENK PALETİ ---
+    // Panel başlık çubuğu (Aktif değilken)
+    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.08f, 0.08f, 0.09f, 1.0f);
+    // Panel başlık çubuğu (Tıklandığında/Aktifken) - Logondaki turuncuya yakın bir ton
+    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.7f, 0.35f, 0.05f, 1.0f);
+    // Pencere arkaplanları
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.05f, 0.05f, 0.06f, 1.0f);
+    // Butonlar
+    style.Colors[ImGuiCol_Button] = ImVec4(0.2f, 0.2f, 0.25f, 1.0f);
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.7f, 0.35f, 0.05f, 1.0f); // Turuncu Hover
+
     style.WindowRounding = 12.0f;
     style.FrameRounding = 6.0f;
     style.WindowBorderSize = 0.0f;
@@ -41,7 +53,11 @@ void MainUI::newFrame() {
 void MainUI::renderPanels() {
     ImGuiIO& io = ImGui::GetIO();
 
-    // Yüklenen logo ID'sini TopPanel'e gönderiyoruz!
+    // İLK OLARAK ZEMİN ÇİZİLİR (En arkada kalması için)
+    // Eğer arka plan panelindeki render fonksiyonun bir sınıfa aitse bu şekilde çağrılır:
+    backgroundPanel.render(io.DisplaySize.x, io.DisplaySize.y);
+
+    // 2. DİĞER PANELLER ONUN ÜZERİNE BİNER
     topPanel.render(windowHandle, io.DisplaySize.x, logoTextureId);
     rightPanel.render(io.DisplaySize.x, io.DisplaySize.y);
 }

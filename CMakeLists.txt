@@ -55,7 +55,9 @@ set(IMGUI_SOURCES
         include/UI/w_TopPanel.h
         src/io/TextureUtility/TextureUtility.cpp
         include/io/TextureUtility/TextureUtility.h
-
+        src/UI/w_BackgroundPanel.cpp
+        include/UI/w_BackgroundPanel.h
+        src/Compute/ParticleSystem/ParticleKernels.cu
 
 )
 

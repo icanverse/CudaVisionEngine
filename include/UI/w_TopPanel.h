@@ -9,4 +9,6 @@ private:
 
 public:
     void render(GLFWwindow* window, float displayWidth, unsigned int logoTextureId);
+    float static getPanelHeight();
+
 };

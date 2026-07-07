@@ -7,8 +7,9 @@
 
 #include <GLFW/glfw3.h> // OpenGL sorguları için eklendi
 
+float panelHeight = 60.0f; // Panel yüksekliği
+
 void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoTextureId) {
-    float panelHeight = 60.0f; // Panel yüksekliği artırıldı ve daha ferah yapıldı
 
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(displayWidth, panelHeight), ImGuiCond_Always);
@@ -23,34 +24,51 @@ void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoT
                              ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
                              ImGuiWindowFlags_NoScrollWithMouse;
 
-    ImGui::Begin("UstPanel", nullptr, flags);
+    ImGui::Begin("TopPanel", nullptr, flags);
 
-    // --- LOGO ÇİZİMİ (Orijinal Oran ve Dinamik Boyutlandırma) ---
+    // Pencerenin köşe koordinatlarını al
+    ImVec2 minPos = ImGui::GetWindowPos(); // Sol üst köşe
+    ImVec2 maxPos = ImVec2(minPos.x + ImGui::GetWindowWidth(), minPos.y + ImGui::GetWindowHeight()); // Sağ alt köşe
+
+    // Renkleri belirle (Üstten alta doğru koyulaşan bir turuncu/siyah gradyanı)
+    ImU32 colorTopLeft  = IM_COL32(55, 30, 10, 255);
+    ImU32 colorTopRight = IM_COL32(55, 30, 10, 255);
+    ImU32 colorBotLeft  = IM_COL32(0, 0, 0, 255);
+    ImU32 colorBotRight = IM_COL32(0, 0, 0, 255);
+
+    // Arka plana gradyan dikdörtgeni çiz
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    // Ekrana ilk bu çizileceği için arkada kalacak, UI elemanları bunun üstüne binecek
+    drawList->AddRectFilledMultiColor(minPos, maxPos, colorTopLeft, colorTopRight, colorBotRight, colorBotLeft);
+
+    // --- LOGO ÇİZİMİ ---
     if (logoTextureId != 0) {
-        float padding = 16.0f; // Logonun alt/üst boşluk payı
+        float padding = 16.0f;
         float logoHeight = panelHeight - padding;
-        float logoWidth = logoHeight; // Hata durumunda varsayılan olarak kare kabul et
+        float logoWidth = logoHeight;
 
-        // Logonun VRAM'deki orijinal piksel genişlik/yükseklik değerlerini çekiyoruz
         glBindTexture(GL_TEXTURE_2D, logoTextureId);
         int texWidth = 0, texHeight = 0;
         glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texWidth);
         glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texHeight);
 
-        // Orijinal en-boy oranını (aspect ratio) koruyarak yeni genişliği hesapla
         if (texHeight > 0) {
             logoWidth = logoHeight * ((float)texWidth / (float)texHeight);
         }
 
-        // Logoyu dikeyde ortala ve 15px sol boşluk bırak
         ImGui::SetCursorPos(ImVec2(15.0f, padding * 0.5f));
         ImGui::Image((void*)(intptr_t)logoTextureId, ImVec2(logoWidth, logoHeight), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
         ImGui::SameLine();
     }
 
+    // --- SÜRÜKLEME ALANI (DRAG AREA) ---
     ImGui::SetCursorPosY(0.0f);
-    // Butonlar ve logo payı için sağdan yeterli boşluk bırakıldı
-    float dragAreaWidth = displayWidth - ImGui::GetCursorPosX() - 110.0f;
+
+    float buttonWidth = panelHeight;
+    float buttonHeight = panelHeight;
+
+    // Butonların kaplayacağı alanı tam olarak hesaplayıp sürükleme alanını sınırlandırıyoruz
+    float dragAreaWidth = displayWidth - ImGui::GetCursorPosX() - (buttonWidth * 2.0f);
     if (dragAreaWidth < 10.0f) dragAreaWidth = 10.0f;
 
     ImGui::InvisibleButton("DragArea", ImVec2(dragAreaWidth, panelHeight));
@@ -73,27 +91,41 @@ void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoT
         isDragging = false;
     }
 
-    // --- PENCERE KONTROL BUTONLARI (Hizalama Kusursuzlaştırıldı) ---
-    ImGui::SameLine();
+    // --- PENCERE KONTROL BUTONLARI (Kusursuz Windows Davranışı) ---
+    ImGui::SameLine(0, 0); // Sürükleme alanıyla butonlar arasındaki boşluğu sıfırla
 
-    float buttonWidth = 40.0f;
-    float buttonHeight = 30.0f;
-    // Her iki butonun da aynı hizada olması için kesin Y koordinatı
-    float buttonYPos = (panelHeight - buttonHeight) * 0.5f;
+    // Butonların kenar yuvarlatmasını sıfırla (Tam dikdörtgen yap)
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 
     // "-" (Simge Durumuna Küçült) Butonu
-    ImGui::SetCursorPosY(buttonYPos);
+    ImGui::SetCursorPosY(0.0f); // Panelin tam en üstünden başla
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f)); // Varsayılan: Şeffaf
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.1f)); // Üzerine gelince: Hafif saydam beyaz
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.2f));  // Tıklanırken: Biraz daha belirgin beyaz
+
     if (ImGui::Button("-", ImVec2(buttonWidth, buttonHeight))) glfwIconifyWindow(window);
 
-    ImGui::SameLine();
+    ImGui::PopStyleColor(3); // "-" butonu için açılan 3 renk kuralını kapat
+
+    ImGui::SameLine(0, 0); // "-" butonuyla "X" butonu arasındaki boşluğu sıfırla
 
     // "X" (Kapat) Butonu
-    ImGui::SetCursorPosY(buttonYPos); // Kesinlikle aynı yükseklik zorlanıyor
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+    ImGui::SetCursorPosY(0.0f); // Panelin tam en üstünden başla
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f)); // Varsayılan: Şeffaf
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.1f, 0.15f, 1.0f)); // Üzerine gelince: Kırmızı
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));  // Tıklanırken: Koyu Kırmızı
+
     if (ImGui::Button("X", ImVec2(buttonWidth, buttonHeight))) glfwSetWindowShouldClose(window, 1);
-    ImGui::PopStyleColor();
+
+    ImGui::PopStyleColor(3); // "X" butonu için açılan 3 renk kuralını kapat
+
+    ImGui::PopStyleVar(); // FrameRounding sıfırlamasını geri al
 
     ImGui::End();
-    ImGui::PopStyleColor();
-    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(); // Pencere arka planı Pop
+    ImGui::PopStyleVar();   // Pencere kenar yuvarlatması Pop
+}
+
+float TopPanel::getPanelHeight() {
+    return panelHeight;
 }
