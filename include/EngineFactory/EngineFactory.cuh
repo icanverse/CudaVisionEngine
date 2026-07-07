@@ -84,6 +84,8 @@ public:
     // Geriye referans dönüyoruz ki zincirleme (fluent) devam edebilsin
     EngineFactory& loadNV12DevicePointer(CUdeviceptr d_nv12, int pitch);
 
+    EngineFactory& loadFromVRAM(unsigned char* d_source_uchar);
+
     // Renk Uzayı Dönüşümleri (Ping-Pong kullanır)
     EngineFactory& rgbToHsv();
     EngineFactory& hsvToRgb();

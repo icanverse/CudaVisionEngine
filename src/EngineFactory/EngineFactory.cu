@@ -142,6 +142,21 @@ void EngineFactory::downloadFrame(unsigned char* cpu_data) {
     cudaFree(d_output_uchar);
 }
 
+//Grafik Kısmında Post Process Kullanımı için
+
+// Parçacık motorundan (veya herhangi bir 8-bit VRAM kaynağından) veriyi devralır
+EngineFactory& EngineFactory::loadFromVRAM(unsigned char* d_source_uchar) {
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (totalElementCount + threadsPerBlock - 1) / threadsPerBlock;
+
+    // 8-bit RGB (0-255) verisini Float (0.0f - 1.0f) formatına dönüştürüp d_data içine alır
+    k_normalizeImage<<<blocksPerGrid, threadsPerBlock>>>(d_source_uchar, d_data, totalElementCount);
+    cudaDeviceSynchronize();
+
+    // Zincirleme reaksiyon (Fluent) devam etsin diye kendini dön
+    return *this;
+}
+
 ///
 /// >>> Akıcı Arayüz -- Fluent Interface Mimarisi için
 ///

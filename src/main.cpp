@@ -48,34 +48,96 @@ int main() {
     std::cout << "[Kivilcim] Motor Aktif. Sistem hazir.\n";
 
     // --- ANA DÖNGÜ ---
+    // ... (Önceki kurulum kodların aynı kalıyor) ...
+
+    std::cout << "[Kivilcim] Motor Aktif. Sistem hazir.\n";
+
+
+    // >>> FPS ve VRAM Takibi İçin Değişkenler
+    double lastTime = glfwGetTime();
+    int frameCount = 0;
+
+    // >>> Post-Process İçin Geçici Tuval (Buffer)
+    unsigned char* d_render_canvas;
+    size_t canvasSize = width * height * channels * sizeof(unsigned char);
+    cudaMalloc(&d_render_canvas, canvasSize);
+
+    // --- ANA DÖNGÜ ---
     while (!target.shouldClose()) {
         glfwPollEvents();
 
-        // UI Yeni Kare
+        // 1. UI Yeni Kare
         sircaUI.newFrame();
-
-        // Panelleri Çizdir
         sircaUI.renderPanels();
 
-        // Motor Fiziği ve Render
-        timeTracker += 0.016f;
-        graphicsRenderer.render(visionEngine.getDeviceData(), myScene, timeTracker);
+        // 2. Motor Fiziği
+        timeTracker += 0.016f; // (İleride bunu sabit yerine deltaTime ile değiştirebilirsin)
         kivilcimSistemi.update(0.016f, timeTracker);
 
-        // VRAM Katmanlarını Birleştir
+        // 3. RENDER PIPELINE (Çizim Hattı)
+
+        // A. 3D Sahneyi visionEngine'in kendi Float belleğine (d_data) çiz
+        graphicsRenderer.render(visionEngine.getDeviceData(), myScene, timeTracker);
+
+        // B. 3D Sahneyi 8-bit'e çevirip "Geçici Tuval"e kopyala
+        visionEngine.copyToDeviceUchar(d_render_canvas);
+
+        // C. Parçacıkları (Ateş böceklerini) Geçici Tuvalin üstüne ekle (Additive Blend)
+        kivilcimSistemi.draw(d_render_canvas, width, height);
+
+        // D. POST-PROCESS (Kabul Köprüsü)
+        // Parçacıklarla birleşmiş o güzel tuvali al, fabrikaya sok, işle!
+        /* visionEngine.loadFromVRAM(d_render_canvas)
+                    .applySmoothing2D(5)         // Örnek: Hafif Glow efekti
+                    .applyLogTransformation();   // Örnek: Renkleri sinematik yap
+        */
+
+        // E. SONUÇLARI EKRANA BASMA (PBO)
         unsigned char* d_pbo = target.mapVRAM();
         if (d_pbo) {
-            visionEngine.copyToDeviceUchar(d_pbo);
-            kivilcimSistemi.draw(d_pbo, width, height);
+            // Eğer yukarıdaki Post-Process satırlarını aktif edersen:
+            // visionEngine.copyToDeviceUchar(d_pbo);
+
+            // Eğer Post-Process kapalıysa, doğrudan tuvali ekrana gönder:
+            cudaMemcpy(d_pbo, d_render_canvas, canvasSize, cudaMemcpyDeviceToDevice);
         }
         target.unmapAndRender();
 
-        // UI Verisini PBO'nun Üstüne Bas
+        // 4. UI Verisini PBO'nun Üstüne Bas
         sircaUI.renderDrawData();
 
         glfwSwapBuffers(target.getWindow());
+
+        // ==========================================
+        // 5. FPS VE VRAM TERMİNAL BİLGİLENDİRMESİ
+        // ==========================================
+        double currentTime = glfwGetTime();
+        frameCount++;
+        if (currentTime - lastTime >= 1.0) { // Her 1 saniyede bir ekranı güncelle
+            size_t free_byte, total_byte;
+            cudaMemGetInfo(&free_byte, &total_byte);
+
+            // Baytları Megabayta (MB) çeviriyoruz
+            double free_db = (double)free_byte / (1024.0 * 1024.0);
+            double total_db = (double)total_byte / (1024.0 * 1024.0);
+            double used_db = total_db - free_db;
+
+            // '\r' karakteri (Carriage Return) terminalde yeni satıra geçmeden
+            // aynı satırı temizleyip üzerine yazmayı sağlar. Böylece terminalin temiz kalır.
+            std::cout << "\r[Kivilcim] FPS: " << frameCount
+                      << " | VRAM Kullanim: " << (int)used_db << " MB / " << (int)total_db << " MB   " << std::flush;
+
+            frameCount = 0;
+            lastTime = currentTime;
+        }
     }
 
+    // Döngü bittiğinde bellek sızıntısını (Memory Leak) önlemek için geçici tuvali temizle
+    cudaFree(d_render_canvas);
+    std::cout << "\n[Kivilcim] Motor guvenli bir sekilde kapatiliyor...\n";
+
     // MainUI'nin Yıkıcısı (Destructor) kapanış işlerini otomatik halleder.
+
+    
     return 0;
 }

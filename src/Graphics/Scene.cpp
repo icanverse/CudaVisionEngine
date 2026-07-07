@@ -66,6 +66,8 @@ Scene::Scene() {
     // Motor başladığında kamera merkezde dursun
     activeCamera.position = {0.0f, 0.0f, 0.0f};
     activeCamera.rotation = {0.0f, 0.0f, 0.0f};
+    activeCamera.isOrthographic = true; ///DİKKAT BUNUN KVLCM İÇİNDEN YÖNETİLMESİ GEREK!!!
+    activeCamera.orthoSize = 5.0f;
 }
 
 Scene& Scene::setCamera(float3 pos, float3 rot) {
