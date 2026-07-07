@@ -22,7 +22,7 @@ struct Material {
     float diffuse;     // Matlık
     float specular;    // Parlama Şiddeti
     float shininess;   // Parlaklık Odağı
-
+    float opacity;
     // --- YENİ BİTMASK SİSTEMİ ---
     uint32_t effectFlags;
 

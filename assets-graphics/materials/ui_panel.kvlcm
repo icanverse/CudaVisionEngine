@@ -1,5 +1,5 @@
 # --- KIVILCIM 2D UI TEST MATERYALİ ---
-COLOR r 0.1 g 0.6 b 0.9
+COLOR r 1.0 g 0.9 b 0.0
 AMBIENT 0.6
 DIFFUSE 0.5
 SPECULAR 1.0
@@ -11,7 +11,7 @@ SHININESS 256.0
 #EFFECT STATICTV 20.0
 
 # 2. TEST: Arayüz penceresinde yeşil/mavi hologram bozulmaları
-# EFFECT GLITCH 15.0
+ EFFECT GLITCH 15.0
 
 # 3. TEST: Saf Matematiksel Gürültü (Siyah-Beyaz test ekranı)
 # EFFECT WHITENOISE 15.0

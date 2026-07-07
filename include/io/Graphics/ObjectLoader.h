@@ -79,6 +79,7 @@ private:
             else if (token == "DIFFUSE") iss >> outMat.diffuse;
             else if (token == "SPECULAR") iss >> outMat.specular;
             else if (token == "SHININESS") iss >> outMat.shininess;
+            else if (token == "OPACITY") iss >> outMat.opacity;
 
             // --- YENİ BİTMASK EFEKT OKUYUCU BLOK ---
             else if (token == "EFFECT") {
@@ -146,6 +147,11 @@ private:
                 else if (effectName == "WHITENOISE") {
                     outMat.effectFlags |= 131072; // 18. Bit
                     iss >> outMat.noiseScale;
+                }
+                else if (effectName == "LIQUID") {
+                    outMat.effectFlags |= 262144; // 19. Bit
+                    iss >> outMat.liquidSpeed;
+                    iss >> outMat.liquidFreq;
                 }
             }
         }

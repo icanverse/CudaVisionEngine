@@ -223,6 +223,11 @@ __global__ void renderMultiObjectMesh(float* d_data, int width, int height, int 
             sPureWhiteNoise(final_r, final_g, final_b, hitPoint, time, hitObj.material.noiseScale);
         }
 
+        if (hitObj.material.effectFlags & 262144) {
+            sLiquidFlow(final_r, final_g, final_b, hitPoint, time,
+                        hitObj.material.liquidSpeed,
+                        hitObj.material.liquidFreq);
+        }
         d_data[index3D]     = fminf(final_r, 1.0f);
         d_data[index3D + 1] = fminf(final_g, 1.0f);
         d_data[index3D + 2] = fminf(final_b, 1.0f);
