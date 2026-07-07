@@ -95,6 +95,7 @@ void MainUI::renderPanels() {
 
     // Ana paneller
     topPanel.render(windowHandle, io.DisplaySize.x, logoTextureId);
+    leftPanel.render(io.DisplaySize.x, logoTextureId);
     rightPanel.render(io.DisplaySize.x, io.DisplaySize.y);
 
     // --- JETBRAINS MONO KULLANIM ÖRNEĞİ ---

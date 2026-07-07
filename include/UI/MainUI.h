@@ -5,10 +5,12 @@
 #include "w_RightPanel.h"
 #include "w_TopPanel.h"
 #include "w_BackgroundPanel.h"
+#include "w_LeftPanel.h"
 
 class MainUI {
 private:
     TopPanel topPanel;
+    LeftPanel leftPanel;
     RightPanel rightPanel;
     BackgroundPanel backgroundPanel;
     GLFWwindow* windowHandle;

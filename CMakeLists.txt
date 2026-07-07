@@ -58,6 +58,8 @@ set(IMGUI_SOURCES
         src/UI/w_BackgroundPanel.cpp
         include/UI/w_BackgroundPanel.h
         src/Compute/ParticleSystem/ParticleKernels.cu
+        src/UI/w_LeftPanel.cpp
+        include/UI/w_LeftPanel.h
 
 )
 
