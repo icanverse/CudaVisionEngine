@@ -1,9 +1,15 @@
 #include "../../include/UI/w_RightPanel.h"
 #include <iostream>
+#include <thread>
 #include "imgui.h"
 #include "UI/w_TopPanel.h"
 #include <windows.h>
 #include <commdlg.h>
+
+// Görsel okuma ve VRAM aktarımı asenkron olarak buraya taşındı
+#include <stb_image.h>
+#include <stb_image_resize.h>
+#include <GLFW/glfw3.h>
 
 // --- DOSYA SEÇİCİ YARDIMCI FONKSİYONU ---
 std::string openFileDialog() {
@@ -24,6 +30,38 @@ std::string openFileDialog() {
     }
     return "";
 }
+
+// --- YARDIMCI FONKSİYON 1: BOŞ TUVAL OLUŞTURUCU (SOLID COLOR) ---
+unsigned int CreateSolidColorTexture(float r, float g, float b) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    unsigned char data[4] = {
+        (unsigned char)(r * 255.0f),
+        (unsigned char)(g * 255.0f),
+        (unsigned char)(b * 255.0f),
+        255
+    };
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    return textureID;
+}
+
+// --- YARDIMCI FONKSİYON 2: YÜKLEME ÇEMBERİ (SPINNER) ÇİZİCİ ---
+void DrawSpinner(ImDrawList* draw_list, const ImVec2& center, float radius, float thickness, ImU32 color) {
+    float time = (float)ImGui::GetTime();
+    int num_segments = 30;
+    float start = time * 6.0f; // Dönüş Hızı
+    float length = 3.14159f;   // Çemberin yarısı kadar kuyruk
+    draw_list->PathClear();
+    draw_list->PathArcTo(center, radius, start, start + length, num_segments);
+    draw_list->PathStroke(color, 0, thickness);
+}
+
 
 // --- CONSTRUCTOR ---
 RightPanel::RightPanel() {
@@ -64,20 +102,20 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.06f, 0.7f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.3f, 0.3f, 0.35f, 0.5f));
 
-    // 2. Input (Kutucuk) Arkaplanları - Mavimsiliği alıp Nötr Koyu Gri yapıyoruz
+    // 2. Input (Kutucuk) Arkaplanları
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.12f, 0.12f, 0.13f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.18f, 0.18f, 0.19f, 1.0f)); // Fareyle üstüne gelince hafif açılsın
-    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.85f, 0.45f, 0.0f, 0.6f)); // İçine tıklayınca turuncu vurgu
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.18f, 0.18f, 0.19f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.85f, 0.45f, 0.0f, 0.6f));
 
-    // 3. Dropdown (Açılır Liste) ve Seçim Renkleri - Mavi seçimleri turuncu yapıyoruz
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.08f, 0.08f, 0.09f, 0.98f)); // Açılır menü arkaplanı (Neredeyse tam siyah)
-    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.85f, 0.45f, 0.0f, 0.5f)); // Listede seçili olan öğe
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.85f, 0.45f, 0.0f, 0.7f)); // Listede fareyle üstüne gelinen öğe
-    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.85f, 0.45f, 0.0f, 0.9f)); // Listede tıklanan öğe
+    // 3. Dropdown (Açılır Liste) ve Seçim Renkleri
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.08f, 0.08f, 0.09f, 0.98f));
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.85f, 0.45f, 0.0f, 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.85f, 0.45f, 0.0f, 0.7f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.85f, 0.45f, 0.0f, 0.9f));
 
     // 4. Diğer Vurgular
     ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 0.6f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, ImVec4(0.85f, 0.45f, 0.0f, 0.4f)); // Yazı seçme (Highlight) rengi
+    ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, ImVec4(0.85f, 0.45f, 0.0f, 0.4f));
 
     ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2(xPos, yPos), ImGuiCond_Always);
@@ -107,7 +145,6 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     ImGui::Checkbox("Orijinal Çözünürlüğü Koru", &keepOriginalSize);
     ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-    // EĞER İŞARETLİYSE ALTAKİLERİ KİLİTLE (DISABLE)
     if (keepOriginalSize) ImGui::BeginDisabled();
 
     // Genişlik ve Yükseklik YAN YANA
@@ -134,18 +171,18 @@ void RightPanel::render(float displayWidth, float displayHeight) {
 
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
-    // Oryantasyon (Mavi renkler Turuncu ile değiştirildi)
+    // Oryantasyon
     ImGui::Text("Oryantasyon:");
     ImGui::SameLine(100.0f);
 
-    if (orientation == 0) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.45f, 0.0f, 1.0f)); // Turuncu
+    if (orientation == 0) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.45f, 0.0f, 1.0f));
     else ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_Button]);
     if (ImGui::Button(" | ", ImVec2(35, 25))) { orientation = 0; }
     ImGui::PopStyleColor();
 
     ImGui::SameLine();
 
-    if (orientation == 1) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.45f, 0.0f, 1.0f)); // Turuncu
+    if (orientation == 1) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.45f, 0.0f, 1.0f));
     else ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_Button]);
     if (ImGui::Button(" - ", ImVec2(35, 25))) { orientation = 1; }
     ImGui::PopStyleColor();
@@ -164,7 +201,6 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     ImGui::Combo("##ResMetric", &resMetric, resMetrics, IM_ARRAYSIZE(resMetrics));
     ImGui::PopItemWidth();
 
-    // KİLİDİ AÇ
     if (keepOriginalSize) ImGui::EndDisabled();
 
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -201,35 +237,88 @@ void RightPanel::render(float displayWidth, float displayHeight) {
 
     ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
 
-    ImGui::InvisibleButton("DropZone", dropZoneSize);
-    bool isHovered = ImGui::IsItemHovered();
-
-    if (ImGui::IsItemClicked()) {
-        std::string tempPath = openFileDialog();
-        if (!tempPath.empty()) {
-            selectedImagePath = tempPath;
-            std::cout << "[RightPanel] Görsel seçildi: " << selectedImagePath << std::endl;
+    // Eğer yükleme işlemi devam ediyorsa butona tıklamayı engelle
+    if (!isProcessingImage) {
+        ImGui::InvisibleButton("DropZone", dropZoneSize);
+        if (ImGui::IsItemClicked()) {
+            std::string tempPath = openFileDialog();
+            if (!tempPath.empty()) {
+                selectedImagePath = tempPath;
+                std::cout << "[RightPanel] Görsel seçildi: " << selectedImagePath << std::endl;
+            }
         }
+    } else {
+        ImGui::Dummy(dropZoneSize); // Yüklenirken tıklanamaz boşluk
     }
 
+    bool isHovered = ImGui::IsItemHovered() && !isProcessingImage;
     ImU32 bgColorZone = isHovered ? IM_COL32(50, 50, 60, 200) : IM_COL32(30, 30, 35, 180);
     ImU32 borderColor = isHovered ? IM_COL32(255, 165, 0, 255) : IM_COL32(100, 100, 110, 150);
 
     drawList->AddRectFilled(cursorScreenPos, ImVec2(cursorScreenPos.x + dropZoneSize.x, cursorScreenPos.y + dropZoneSize.y), bgColorZone, 8.0f);
     drawList->AddRect(cursorScreenPos, ImVec2(cursorScreenPos.x + dropZoneSize.x, cursorScreenPos.y + dropZoneSize.y), borderColor, 8.0f, 0, isHovered ? 2.0f : 1.0f);
 
-    std::string dropText = selectedImagePath.empty() ? "Görsel Seçin (İsteğe Bağlı)" : "Görsel Hazır!\nDeğiştirmek için tıkla.";
-    ImVec2 textSize = ImGui::CalcTextSize(dropText.c_str());
+    ImVec2 centerPos = ImVec2(cursorScreenPos.x + dropZoneSize.x * 0.5f, cursorScreenPos.y + dropZoneSize.y * 0.5f);
 
-    ImVec2 textPos = ImVec2(
-        cursorScreenPos.x + (dropZoneSize.x - textSize.x) * 0.5f,
-        cursorScreenPos.y + (dropZoneSize.y - textSize.y) * 0.5f
-    );
+    if (isProcessingImage) {
+        // --- YÜKLEME ÇEMBERİ ÇİZİLİYOR ---
+        DrawSpinner(drawList, centerPos, 20.0f, 4.0f, IM_COL32(255, 165, 0, 255)); // Turuncu Spinner
 
-    ImU32 textColor = selectedImagePath.empty() ? (isHovered ? IM_COL32(255, 204, 102, 255) : IM_COL32(180, 180, 180, 255)) : IM_COL32(120, 255, 120, 255);
-    drawList->AddText(textPos, textColor, dropText.c_str());
+        std::string loadingText = "Gorsel Isleniyor...";
+        ImVec2 textSize = ImGui::CalcTextSize(loadingText.c_str());
+        drawList->AddText(ImVec2(centerPos.x - textSize.x * 0.5f, centerPos.y + 25.0f), IM_COL32(255, 165, 0, 255), loadingText.c_str());
+    } else {
+        std::string dropText = selectedImagePath.empty() ? "Gorsel Secin (Istege Bagli)" : "Gorsel Hazir!\nDegistirmek icin tikla.";
+        ImVec2 textSize = ImGui::CalcTextSize(dropText.c_str());
+        ImVec2 textPos = ImVec2(centerPos.x - textSize.x * 0.5f, centerPos.y - textSize.y * 0.5f);
+        ImU32 textColor = selectedImagePath.empty() ? (isHovered ? IM_COL32(255, 204, 102, 255) : IM_COL32(180, 180, 180, 255)) : IM_COL32(120, 255, 120, 255);
+        drawList->AddText(textPos, textColor, dropText.c_str());
+    }
 
     // ==========================================
+    // --- THREAD'DEN GELEN VERİYİ YAKALAMA (ANA THREAD) ---
+    // ==========================================
+    if (isImageReadyForGPU) {
+        GLuint textureID = 0;
+        if (rawResizedData) {
+            glGenTextures(1, &textureID);
+            glBindTexture(GL_TEXTURE_2D, textureID);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            // Thumbnailler sabit 256x144 boyutuna yeniden boyutlandırıldığı için
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 144, 0, GL_RGBA, GL_UNSIGNED_BYTE, rawResizedData);
+            free(rawResizedData);
+            rawResizedData = nullptr;
+        }
+
+        std::string finalName = std::string(projectNameBuf);
+        if (finalName.empty()) {
+            finalName = "İsimsiz Proje";
+        }
+
+        Kivilcim::ProjectData newData(0, finalName, selectedImagePath);
+        newData.textureID = textureID;
+        newData.size = {loadedOrigW, loadedOrigH};
+
+        newData.projectWidth = docWidth;
+        newData.projectHeight = docHeight;
+        newData.bgColor[0] = bgColor[0];
+        newData.bgColor[1] = bgColor[1];
+        newData.bgColor[2] = bgColor[2];
+        newData.keepOriginalSize = keepOriginalSize;
+        newData.dimMetric = dimMetric;
+        newData.orientation = orientation;
+        newData.resolution = resolution;
+
+        if (onProjectCreated) onProjectCreated(newData);
+
+        selectedImagePath = "";
+        memset(projectNameBuf, 0, sizeof(projectNameBuf));
+        isImageReadyForGPU = false;
+        isProcessingImage = false; // Yükleme bitti, arayüzü normale çevir
+    }
+
+// ==========================================
     // 3. OLUŞTUR BUTONU (EN ALT KISIM)
     // ==========================================
     float buttonHeight = 45.0f;
@@ -241,25 +330,70 @@ void RightPanel::render(float displayWidth, float displayHeight) {
         ImGui::Dummy(ImVec2(0.0f, spaceLeft));
     }
 
+    // DİKKAT: Frame başındaki durumu kaydediyoruz!
+    bool isDisabled = isProcessingImage;
+
+    if (isDisabled) ImGui::BeginDisabled(); // Yüklenirken butonu dondur
+
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.45f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.55f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.65f, 0.35f, 0.0f, 1.0f));
 
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + dropZoneIndent);
 
-    if (ImGui::Button("PROJEYİ OLUŞTUR", ImVec2(dropZoneSize.x, buttonHeight))) {
-        if (onImageImported) {
-            onImageImported(selectedImagePath);
+    if (ImGui::Button("PROJEYI OLUSTUR", ImVec2(dropZoneSize.x, buttonHeight))) {
+        if (!selectedImagePath.empty()) {
+            // ASENKRON THREAD BAŞLATILIYOR
+            isProcessingImage = true; // Bu değişiklik artık EndDisabled'ı patlatmayacak!
+            std::string pathCopy = selectedImagePath;
+
+            std::thread([this, pathCopy]() {
+                int w, h, channels;
+                stbi_set_flip_vertically_on_load(true);
+                unsigned char* data = stbi_load(pathCopy.c_str(), &w, &h, &channels, 4);
+                if (data) {
+                    this->loadedOrigW = w;
+                    this->loadedOrigH = h;
+                    this->rawResizedData = (unsigned char*)malloc(256 * 144 * 4);
+                    stbir_resize_uint8(data, w, h, 0, this->rawResizedData, 256, 144, 0, 4);
+                    stbi_image_free(data);
+                }
+                this->isImageReadyForGPU = true; // Thread işini bitirdiğini haber veriyor
+            }).detach();
+
+        } else {
+            // GÖRSEL YOKSA (Düz Renk Tuval - Beklemeye gerek yok anında oluştur)
+            std::string finalName = std::string(projectNameBuf);
+            if (finalName.empty()) {
+                finalName = "İsimsiz Proje";
+            }
+
+            Kivilcim::ProjectData newData(0, finalName, "");
+            newData.textureID = CreateSolidColorTexture(bgColor[0], bgColor[1], bgColor[2]);
+            newData.size = {docWidth, docHeight};
+            newData.projectWidth = docWidth;
+            newData.projectHeight = docHeight;
+            newData.bgColor[0] = bgColor[0];
+            newData.bgColor[1] = bgColor[1];
+            newData.bgColor[2] = bgColor[2];
+            newData.keepOriginalSize = keepOriginalSize;
+            newData.dimMetric = dimMetric;
+            newData.orientation = orientation;
+            newData.resolution = resolution;
+
+            if (onProjectCreated) onProjectCreated(newData);
+            memset(projectNameBuf, 0, sizeof(projectNameBuf));
         }
-        selectedImagePath = "";
-        memset(projectNameBuf, 0, sizeof(projectNameBuf));
     }
 
     ImGui::PopStyleColor(3);
 
+    // Başlangıçta Disabled yaptıysak, şimdi EndDisabled yapıyoruz.
+    if (isDisabled) ImGui::EndDisabled();
+
     ImGui::End();
 
-    // Yukarıda tanımladığımız 6 renk ve 2 stil değerini temizliyoruz.
+    // Yukarıda tanımladığımız 11 renk ve 2 stil değerini temizliyoruz.
     ImGui::PopStyleColor(11);
     ImGui::PopStyleVar(2);
 }

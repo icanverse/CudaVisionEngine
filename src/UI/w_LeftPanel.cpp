@@ -1,13 +1,9 @@
 #include "../../include/UI/w_LeftPanel.h"
 #include <iostream>
+#include <algorithm> // std::min için eklendi
 
 #include "imgui.h"
 #include "UI/w_TopPanel.h"
-
-// Görsel işleme ve VRAM aktarımı için
-#include <stb_image.h>
-#include <stb_image_resize.h>
-#include <GLFW/glfw3.h>
 
 // --- RENDER DÖNGÜSÜ ---
 void LeftPanel::render(float displayWidth, float displayHeight) {
@@ -47,13 +43,35 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
     float tileHeight = 144.0f;
 
     for (size_t i = 0; i < projectStack.size(); ++i) {
-        ImGui::PushID(i);
+        ImGui::PushID((int)i);
         ImGui::BeginGroup();
+
+        ImVec2 startPos = ImGui::GetCursorPos(); // Grubun başlangıç noktası
 
         // 1. Görsel Alanı (Texture ID 0'dan büyükse başarılı yüklenmiştir)
         if (projectStack[i].textureID > 0) {
+            // --- EN-BOY ORANI (ASPECT RATIO) HESAPLAMA ---
+            float origW = (float)projectStack[i].size.x;
+            float origH = (float)projectStack[i].size.y;
+
+            // Eğer boyut 0 ise hatayı önlemek için varsayılan ver
+            if (origW <= 0.0f) origW = tileWidth;
+            if (origH <= 0.0f) origH = tileHeight;
+
+            // Görseli 256x144 kutuya sığdırmak için küçültme oranını bul
+            float scale = std::min(tileWidth / origW, tileHeight / origH);
+            float renderW = origW * scale;
+            float renderH = origH * scale;
+
+            // Ortalamak için gereken X ve Y boşluklarını hesapla
+            float offsetX = (tileWidth - renderW) * 0.5f;
+            float offsetY = (tileHeight - renderH) * 0.5f;
+
+            // İmleci ortalanmış noktaya taşı ve butonu oraya çiz
+            ImGui::SetCursorPos(ImVec2(startPos.x + offsetX, startPos.y + offsetY));
+
             // UV koordinatlarını ekledik: ImVec2(0, 1) ve ImVec2(1, 0) görseli dikeyde aynalar
-            if (ImGui::ImageButton(projectStack[i].name.c_str(), (ImTextureID)(intptr_t)projectStack[i].textureID, ImVec2(tileWidth, tileHeight), ImVec2(0, 1), ImVec2(1, 0))) {
+            if (ImGui::ImageButton(projectStack[i].name.c_str(), (ImTextureID)(intptr_t)projectStack[i].textureID, ImVec2(renderW, renderH), ImVec2(0, 1), ImVec2(1, 0))) {
                 std::cout << "[UI] Proje secildi: " << projectStack[i].name << std::endl;
                 projectStack[i].isSelected = true;
             }
@@ -64,6 +82,9 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
             }
         }
 
+        // Metni her zaman görsel alanının hemen altına yazmak için imleci sabit konuma sıfırla
+        ImGui::SetCursorPos(ImVec2(startPos.x, startPos.y + tileHeight + 5.0f));
+
         // 2. Altındaki İsim
         float textWidth = ImGui::CalcTextSize(projectStack[i].name.c_str()).x;
         float textIndent = (tileWidth - textWidth) * 0.5f;
@@ -73,7 +94,7 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
         ImGui::EndGroup();
 
         // 3. Grid Mantığı
-        float lastGroupX2 = ImGui::GetItemRectMax().x;
+        float lastGroupX2 = startPos.x + tileWidth; // Orijinal genişliği referans al
         float nextGroupX2 = lastGroupX2 + style.ItemSpacing.x + tileWidth;
         if (i + 1 < projectStack.size() && nextGroupX2 < windowVisibleX2) {
             ImGui::SameLine();
@@ -89,52 +110,17 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
     ImGui::PopStyleVar(2);
 }
 
-// --- YARDIMCI FONKSİYON: THUMBNAIL OLUŞTURUCU ---
-unsigned int LoadThumbnailTexture(const std::string& path, int targetW, int targetH) {
-    int w, h, channels;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 4); // 4 Kanal (RGBA) zorunlu
+// --- YENİ PROJE EKLEME (TEMİZ VE YÜKSÜZ) ---
+void LeftPanel::addProjectToStack(Kivilcim::ProjectData newProject) {
+    // 1. Yeni projeye ID ata
+    newProject.id = projectCounter++;
 
-    if (!data) {
-        std::cerr << "[Kivilcim UI] HATA: Gorsel okunamadi -> " << path << std::endl;
-        return 0; // Hata durumunda 0 (Geçersiz Texture ID) döner
+    // 2. İsim girilmemişse numaralandır
+    if (newProject.name == "İsimsiz-1" || newProject.name.empty()) {
+        newProject.name = "İsimsiz Proje " + std::to_string(newProject.id);
     }
 
-    // Küçültülmüş resim için RAM'de yer ayır
-    unsigned char* resizedData = (unsigned char*)malloc(targetW * targetH * 4);
-    stbir_resize_uint8(data, w, h, 0, resizedData, targetW, targetH, 0, 4);
-
-    // OpenGL (VRAM) üzerinde Doku (Texture) oluştur
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    // Filtreleme (Küçültülen resimler için Linear en iyisidir)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Veriyi GPU'ya yolla
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, targetW, targetH, 0, GL_RGBA, GL_UNSIGNED_BYTE, resizedData);
-
-    // RAM'i temizle (Pikseller artık GPU'da)
-    free(resizedData);
-    stbi_image_free(data);
-
-    return textureID;
-}
-
-void LeftPanel::addProjectToStack(const std::string& photoPath) {
-    // 1. Yeni projeyi oluştur (Constructor otomatik olarak diğer değişkenleri sıfırlar)
-    std::string projName = "Isimsiz " + std::to_string(projectCounter++);
-    Kivilcim::ProjectData newProject(projectCounter, projName, photoPath);
-
-    // 2. Thumbnail'i oluştur ve VRAM'deki ID'sini kaydet
-    newProject.textureID = LoadThumbnailTexture(photoPath, 256, 144);
-
-    // İleride orijinal görsel boyutlarını (metadata) almak istersen stbi_info kullanabilirsin
-    // stbi_info(photoPath.c_str(), &newProject.size.x, &newProject.size.y, &newProject.channels);
-
-    // 3. Stack'e ekle
+    // 3. Stack'in en başına (sola) ekle
     projectStack.insert(projectStack.begin(), newProject);
-    std::cout << "[Kivilcim UI] Yeni proje olusturuldu ve VRAM'e aktarildi: " << newProject.name << std::endl;
+    std::cout << "[Kivilcim UI] Yeni proje VRAM'e aktarildi: " << newProject.name << std::endl;
 }

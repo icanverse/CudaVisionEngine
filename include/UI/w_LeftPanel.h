@@ -15,7 +15,7 @@ struct ProjectItem {
 class LeftPanel {
 public:
     void render(float displayWidth, float displayHeight);
-    void addProjectToStack(const std::string& photoPath); // Yeni proje ekleme fonksiyonu
+    void addProjectToStack(Kivilcim::ProjectData newProject);
 
 private:
     std::vector<Kivilcim::ProjectData> projectStack; // Projeleri tutan stack

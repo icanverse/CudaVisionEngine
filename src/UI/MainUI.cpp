@@ -72,8 +72,9 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
     logoTextureId = TextureUtility::LoadTextureFromFile("C:/Users/Can/CLionProjects/CudVisionEngineX/src/UI/logo.png");
 
     // SAĞ PANELDEN SOL PANELE KÖPRÜ KURULUMU (Lambda Fonksiyonu ile)
-    rightPanel.setOnImageImportedCallback([this](const std::string& imagePath) {
-        leftPanel.addProjectToStack(imagePath);
+    rightPanel.setOnProjectCreatedCallback([this](const Kivilcim::ProjectData& newProjectData) {
+        // Bu paket doğrudan LeftPanel'e gidecek
+        leftPanel.addProjectToStack(newProjectData);
     });
 }
 
