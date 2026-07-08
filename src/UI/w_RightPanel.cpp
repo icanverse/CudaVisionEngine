@@ -90,8 +90,10 @@ void RightPanel::render(float displayWidth, float displayHeight) {
         if (!selectedImagePath.empty()) {
             std::cout << "[RightPanel] Secilen Gorsel: " << selectedImagePath << std::endl;
 
-            // TODO: Bu dosya yolunu (path) alıp LeftPanel'in stack'ine ekleyeceğiz
-            // VEYA doğrudan CUDA VRAM'e yükleyeceğiz.
+            // Eğer MainUI bize bir görev (callback) atadıysa, onu çalıştır ve veriyi gönder
+            if (onImageImported) {
+                onImageImported(selectedImagePath);
+            }
         }
     }
 

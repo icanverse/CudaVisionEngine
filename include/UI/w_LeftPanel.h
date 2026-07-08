@@ -1,20 +1,21 @@
-//
-// Created by Can on 7.07.2026.
-//
-
-#ifndef CUDAVISIONENGINE_W_LEFTPANEL_H
-#define CUDAVISIONENGINE_W_LEFTPANEL_H
+#pragma once
+#include <vector>
 #include <string>
+#include <imgui.h>
 
-
-class LeftPanel {
-
-public:
-
-    void render(float displayWidth, float displayHeight);
-    void addPhotoToStack(const std::string& photoPath);
-
+// Basit bir proje veri yapısı
+struct ProjectItem {
+    std::string name;
+    std::string imagePath;
+    ImTextureID textureID; // İleride gerçek fotoğraf yüklediğinde kullanılacak
 };
 
+class LeftPanel {
+public:
+    void render(float displayWidth, float displayHeight);
+    void addPhotoToStack(const std::string& photoPath); // Yeni proje ekleme fonksiyonu
 
-#endif //CUDAVISIONENGINE_W_LEFTPANEL_H
+private:
+    std::vector<ProjectItem> photoStack; // Projeleri tutan stack
+    int projectCounter = 1; // "İsimsiz 1", "İsimsiz 2" isimlendirmesi için sayaç
+};
