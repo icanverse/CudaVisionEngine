@@ -60,6 +60,7 @@ set(IMGUI_SOURCES
         src/Compute/ParticleSystem/ParticleKernels.cu
         src/UI/w_LeftPanel.cpp
         include/UI/w_LeftPanel.h
+        include/UI/Data/ProjectData.h
 
 )
 

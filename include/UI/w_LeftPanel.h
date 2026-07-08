@@ -3,6 +3,8 @@
 #include <string>
 #include <imgui.h>
 
+#include "Data/ProjectData.h"
+
 // Basit bir proje veri yapısı
 struct ProjectItem {
     std::string name;
@@ -13,9 +15,9 @@ struct ProjectItem {
 class LeftPanel {
 public:
     void render(float displayWidth, float displayHeight);
-    void addPhotoToStack(const std::string& photoPath); // Yeni proje ekleme fonksiyonu
+    void addProjectToStack(const std::string& photoPath); // Yeni proje ekleme fonksiyonu
 
 private:
-    std::vector<ProjectItem> photoStack; // Projeleri tutan stack
+    std::vector<Kivilcim::ProjectData> projectStack; // Projeleri tutan stack
     int projectCounter = 1; // "İsimsiz 1", "İsimsiz 2" isimlendirmesi için sayaç
 };

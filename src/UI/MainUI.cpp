@@ -73,8 +73,7 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
 
     // SAĞ PANELDEN SOL PANELE KÖPRÜ KURULUMU (Lambda Fonksiyonu ile)
     rightPanel.setOnImageImportedCallback([this](const std::string& imagePath) {
-        // Sağ panelden gelen imagePath verisini, sol panelin stack'ine ekle
-        leftPanel.addPhotoToStack(imagePath);
+        leftPanel.addProjectToStack(imagePath);
     });
 }
 
