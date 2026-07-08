@@ -1,9 +1,50 @@
 #include "../../include/UI/w_LeftPanel.h"
 #include <iostream>
-#include <algorithm> // std::min için eklendi
+#include <algorithm>
 
 #include "imgui.h"
 #include "UI/w_TopPanel.h"
+
+// --- YENİ: KAYIT PARSER'I VE GÖRSEL YÜKLEYİCİLER ---
+#include <stb_image.h>
+#include <stb_image_resize.h>
+#include <GLFW/glfw3.h>
+
+#include "io/UI/KvlcmProjectParser.h"
+
+// Linker çakışmasını önlemek için 'static' tanımlandı
+static unsigned int CreateSolidColorTexture_Local(float r, float g, float b) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    unsigned char data[4] = { (unsigned char)(r * 255.0f), (unsigned char)(g * 255.0f), (unsigned char)(b * 255.0f), 255 };
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    return textureID;
+}
+
+static unsigned int LoadThumbnailTexture_Local(const std::string& path, int targetW, int targetH, int& outOrigW, int& outOrigH) {
+    int w, h, channels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 4);
+    if (!data) return 0;
+
+    outOrigW = w; outOrigH = h;
+    unsigned char* resizedData = (unsigned char*)malloc(targetW * targetH * 4);
+    stbir_resize_uint8(data, w, h, 0, resizedData, targetW, targetH, 0, 4);
+
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, targetW, targetH, 0, GL_RGBA, GL_UNSIGNED_BYTE, resizedData);
+
+    free(resizedData);
+    stbi_image_free(data);
+    return textureID;
+}
 
 // --- RENDER DÖNGÜSÜ ---
 void LeftPanel::render(float displayWidth, float displayHeight) {
@@ -33,9 +74,6 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
     ImGui::Separator();
     ImGui::Dummy(ImVec2(0.0f, 15.0f));
 
-    // ==========================================
-    // PROJE IZGARASI (16:9)
-    // ==========================================
     float windowVisibleX2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
     ImGuiStyle& style = ImGui::GetStyle();
 
@@ -46,46 +84,46 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
         ImGui::PushID((int)i);
         ImGui::BeginGroup();
 
-        ImVec2 startPos = ImGui::GetCursorPos(); // Grubun başlangıç noktası
+        ImVec2 startPos = ImGui::GetCursorPos();
 
-        // 1. Görsel Alanı (Texture ID 0'dan büyükse başarılı yüklenmiştir)
         if (projectStack[i].textureID > 0) {
-            // --- EN-BOY ORANI (ASPECT RATIO) HESAPLAMA ---
             float origW = (float)projectStack[i].size.x;
             float origH = (float)projectStack[i].size.y;
 
-            // Eğer boyut 0 ise hatayı önlemek için varsayılan ver
             if (origW <= 0.0f) origW = tileWidth;
             if (origH <= 0.0f) origH = tileHeight;
 
-            // Görseli 256x144 kutuya sığdırmak için küçültme oranını bul
             float scale = std::min(tileWidth / origW, tileHeight / origH);
             float renderW = origW * scale;
             float renderH = origH * scale;
-
-            // Ortalamak için gereken X ve Y boşluklarını hesapla
             float offsetX = (tileWidth - renderW) * 0.5f;
             float offsetY = (tileHeight - renderH) * 0.5f;
 
-            // İmleci ortalanmış noktaya taşı ve butonu oraya çiz
             ImGui::SetCursorPos(ImVec2(startPos.x + offsetX, startPos.y + offsetY));
 
-            // UV koordinatlarını ekledik: ImVec2(0, 1) ve ImVec2(1, 0) görseli dikeyde aynalar
             if (ImGui::ImageButton(projectStack[i].name.c_str(), (ImTextureID)(intptr_t)projectStack[i].textureID, ImVec2(renderW, renderH), ImVec2(0, 1), ImVec2(1, 0))) {
                 std::cout << "[UI] Proje secildi: " << projectStack[i].name << std::endl;
                 projectStack[i].isSelected = true;
             }
+
+            // --- ÇİFT TIKLAMA KONTROLÜ (GÖRSEL İÇİN) ---
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                std::cout << "[UI] Projeye CIFT TIKLANDI: " << projectStack[i].name << std::endl;
+                if (onProjectDoubleClicked) onProjectDoubleClicked(projectStack[i].id);
+            }
         } else {
-            // Görsel yüklenemediyse normal buton
             if (ImGui::Button("Gorsel\nYok", ImVec2(tileWidth, tileHeight))) {
                 std::cout << "[UI] Proje secildi: " << projectStack[i].name << std::endl;
             }
+            // ---  ÇİFT TIKLAMA KONTROLÜ (NORMAL BUTON İÇİN) ---
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                std::cout << "[UI] Projeye CIFT TIKLANDI: " << projectStack[i].name << std::endl;
+                if (onProjectDoubleClicked) onProjectDoubleClicked(projectStack[i].id);
+            }
         }
 
-        // Metni her zaman görsel alanının hemen altına yazmak için imleci sabit konuma sıfırla
         ImGui::SetCursorPos(ImVec2(startPos.x, startPos.y + tileHeight + 5.0f));
 
-        // 2. Altındaki İsim
         float textWidth = ImGui::CalcTextSize(projectStack[i].name.c_str()).x;
         float textIndent = (tileWidth - textWidth) * 0.5f;
         if (textIndent > 0.0f) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + textIndent);
@@ -93,8 +131,7 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
 
         ImGui::EndGroup();
 
-        // 3. Grid Mantığı
-        float lastGroupX2 = startPos.x + tileWidth; // Orijinal genişliği referans al
+        float lastGroupX2 = startPos.x + tileWidth;
         float nextGroupX2 = lastGroupX2 + style.ItemSpacing.x + tileWidth;
         if (i + 1 < projectStack.size() && nextGroupX2 < windowVisibleX2) {
             ImGui::SameLine();
@@ -110,17 +147,46 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
     ImGui::PopStyleVar(2);
 }
 
-// --- YENİ PROJE EKLEME (TEMİZ VE YÜKSÜZ) ---
+// --- YENİ PROJE EKLEME ---
 void LeftPanel::addProjectToStack(Kivilcim::ProjectData newProject) {
-    // 1. Yeni projeye ID ata
-    newProject.id = projectCounter++;
+    if (newProject.id == 0) {
+        newProject.id = projectCounter++;
+    } else if (newProject.id >= projectCounter) {
+        projectCounter = newProject.id + 1; // ID sayacını disktan gelen veriye göre senkronize et
+    }
 
-    // 2. İsim girilmemişse numaralandır
     if (newProject.name == "İsimsiz-1" || newProject.name.empty()) {
         newProject.name = "İsimsiz Proje " + std::to_string(newProject.id);
     }
 
-    // 3. Stack'in en başına (sola) ekle
     projectStack.insert(projectStack.begin(), newProject);
-    std::cout << "[Kivilcim UI] Yeni proje VRAM'e aktarildi: " << newProject.name << std::endl;
+    std::cout << "[Kivilcim UI] Proje eklendi: " << newProject.name << std::endl;
+}
+
+// --- ÇALIŞMA ALANINI DİSKTEN YÜKLE ---
+// --- ÇALIŞMA ALANINI DİSKTEN YÜKLE ---
+// --- ÇALIŞMA ALANINI DİSKTEN YÜKLE ---
+void LeftPanel::loadWorkspace() {
+    // YENİ: Okumaya başlamadan önce mevcut listeyi tamamen sıfırla (X2 Kopyalanma BUG'ını sonsuza dek çözer)
+    projectStack.clear();
+
+    // Yolu doğrudan masaüstüne verdik
+    std::vector<Kivilcim::ProjectData> savedProjects = Kivilcim::KvlcmProjectParser::load("C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj");
+
+    for (auto it = savedProjects.rbegin(); it != savedProjects.rend(); ++it) {
+        Kivilcim::ProjectData& p = *it;
+        if (!p.imagePath.empty()) {
+            int origW = 0, origH = 0;
+            p.textureID = LoadThumbnailTexture_Local(p.imagePath, 256, 144, origW, origH);
+            if (p.textureID > 0) p.size = {origW, origH};
+        } else {
+            p.textureID = CreateSolidColorTexture_Local(p.bgColor[0], p.bgColor[1], p.bgColor[2]);
+        }
+        this->addProjectToStack(p);
+    }
+}
+// --- ÇALIŞMA ALANINI DİSKE KAYDET ---
+void LeftPanel::saveWorkspace() {
+    // Yolu doğrudan masaüstüne verdik
+    Kivilcim::KvlcmProjectParser::save("C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj", projectStack);
 }

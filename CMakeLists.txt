@@ -61,6 +61,9 @@ set(IMGUI_SOURCES
         src/UI/w_LeftPanel.cpp
         include/UI/w_LeftPanel.h
         include/UI/Data/ProjectData.h
+        include/io/UI/KvlcmProjectParser.h
+        src/UI/Workspace.cpp
+        include/UI/Workspace.h
 
 )
 
