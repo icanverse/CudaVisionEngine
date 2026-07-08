@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <functional>
-#include <atomic> // Asenkron thread işlemleri için eklendi
+#include <atomic>
 #include "../UI/Data/ProjectData.h"
 
 class RightPanel {
@@ -9,11 +9,16 @@ public:
     RightPanel();
     void render(float displayWidth, float displayHeight);
 
+    void setOnImageImportedCallback(std::function<void(const std::string&)> callback) {
+        onImageImported = callback;
+    }
     void setOnProjectCreatedCallback(std::function<void(const Kivilcim::ProjectData&)> callback) {
         onProjectCreated = callback;
     }
 
 private:
+    std::function<void(const std::string&)> onImageImported;
+
     // --- UI DURUM (STATE) DEĞİŞKENLERİ ---
     char projectNameBuf[128];
 
@@ -30,6 +35,8 @@ private:
     float bgColor[3];             // Arka Plan Rengi
 
     std::string selectedImagePath;
+    std::string projectSavePath;  // YENİ: Proje Kayıt Klasörü
+
     bool keepOriginalSize;
 
     std::function<void(const Kivilcim::ProjectData&)> onProjectCreated;
@@ -38,7 +45,7 @@ private:
     std::atomic<bool> isProcessingImage{false};
     std::atomic<bool> isImageReadyForGPU{false};
 
-    unsigned char* rawResizedData = nullptr; // Thread'den dönen pikseller
+    unsigned char* rawResizedData = nullptr;
     int loadedOrigW = 0;
     int loadedOrigH = 0;
 };

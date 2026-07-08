@@ -5,13 +5,14 @@
 #include "UI/w_TopPanel.h"
 #include <windows.h>
 #include <commdlg.h>
+#include <shlobj.h> // YENİ: Klasör seçimi için eklendi
 
 // Görsel okuma ve VRAM aktarımı asenkron olarak buraya taşındı
 #include <stb_image.h>
 #include <stb_image_resize.h>
 #include <GLFW/glfw3.h>
 
-// --- DOSYA SEÇİCİ YARDIMCI FONKSİYONU ---
+// --- YARDIMCI 1: DOSYA SEÇİCİ ---
 std::string openFileDialog() {
     char filename[MAX_PATH];
     OPENFILENAMEA ofn;
@@ -31,7 +32,23 @@ std::string openFileDialog() {
     return "";
 }
 
-// --- YARDIMCI FONKSİYON 1: BOŞ TUVAL OLUŞTURUCU (SOLID COLOR) ---
+// --- YARDIMCI 2: KLASÖR SEÇİCİ (YENİ) ---
+std::string openFolderDialog() {
+    char path[MAX_PATH];
+    BROWSEINFOA bi = { 0 };
+    bi.lpszTitle = "Proje Klasorunu Secin";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+
+    LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+    if (pidl != 0) {
+        SHGetPathFromIDListA(pidl, path);
+        CoTaskMemFree(pidl);
+        return std::string(path);
+    }
+    return "";
+}
+
+// --- YARDIMCI 3: BOŞ TUVAL OLUŞTURUCU (SOLID COLOR) ---
 unsigned int CreateSolidColorTexture(float r, float g, float b) {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -51,7 +68,7 @@ unsigned int CreateSolidColorTexture(float r, float g, float b) {
     return textureID;
 }
 
-// --- YARDIMCI FONKSİYON 2: YÜKLEME ÇEMBERİ (SPINNER) ÇİZİCİ ---
+// --- YARDIMCI 4: YÜKLEME ÇEMBERİ (SPINNER) ÇİZİCİ ---
 void DrawSpinner(ImDrawList* draw_list, const ImVec2& center, float radius, float thickness, ImU32 color) {
     float time = (float)ImGui::GetTime();
     int num_segments = 30;
@@ -76,6 +93,9 @@ RightPanel::RightPanel() {
     bgColor[0] = 1.0f; bgColor[1] = 1.0f; bgColor[2] = 1.0f;
     selectedImagePath = "";
     keepOriginalSize = true; // Varsayılan olarak kilitli gelsin
+
+    // YENİ: Varsayılan Proje Kayıt Yolu
+    projectSavePath = "C:\\Program Files\\Sirca\\Projects";
 }
 
 // --- RENDER DÖNGÜSÜ ---
@@ -98,9 +118,9 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.2f);
 
-    // 1. Ana Pencere ve Çerçeve
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.06f, 0.7f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.3f, 0.3f, 0.35f, 0.5f));
+    // 1. Ana Pencere ve Çerçeve (Şeffaf Bırakıyoruz)
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.85f, 0.45f, 0.0f, 0.3f));
 
     // 2. Input (Kutucuk) Arkaplanları
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.12f, 0.12f, 0.13f, 1.0f));
@@ -276,6 +296,47 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     }
 
     // ==========================================
+    // 2.5 GELİŞMİŞ SEÇENEKLER (YENİ KLASÖR SEÇİMİ)
+    // ==========================================
+    ImGui::Dummy(ImVec2(0.0f, 15.0f));
+
+    // Header (Açılır Menü) renklerini ana temaya (Koyu Gri/Cam) uygun hale getir
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.12f, 0.12f, 0.13f, 0.6f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.18f, 0.18f, 0.19f, 0.8f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.85f, 0.45f, 0.0f, 0.6f));
+
+    if (ImGui::CollapsingHeader("Gelismiş Secenekler")) {
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Proje Kayit Konumu:");
+
+        // Metin Kutusu (Input)
+        char pathBuf[512];
+        strncpy(pathBuf, projectSavePath.c_str(), sizeof(pathBuf));
+        pathBuf[sizeof(pathBuf) - 1] = '\0'; // Güvenlik önlemi
+
+        ImGui::PushItemWidth(panelWidth * 0.65f); // Genişliği butona yer kalacak şekilde ayarla
+        if (ImGui::InputText("##FolderPath", pathBuf, sizeof(pathBuf))) {
+            projectSavePath = pathBuf;
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::SameLine();
+
+        // Gözat Butonu Rengi (Koyu/Mütevazi)
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.22f, 1.0f));
+        if (ImGui::Button("Gozat...", ImVec2(panelWidth * 0.2f, 0))) {
+            std::string selectedFolder = openFolderDialog();
+            if (!selectedFolder.empty()) {
+                projectSavePath = selectedFolder;
+            }
+        }
+        ImGui::PopStyleColor(); // Buton renk iptali
+
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+    }
+    ImGui::PopStyleColor(3); // Header renk iptali
+
+    // ==========================================
     // --- THREAD'DEN GELEN VERİYİ YAKALAMA (ANA THREAD) ---
     // ==========================================
     if (isImageReadyForGPU) {
@@ -310,6 +371,9 @@ void RightPanel::render(float displayWidth, float displayHeight) {
         newData.orientation = orientation;
         newData.resolution = resolution;
 
+        // YENİ: Kullanıcının belirlediği kayıt konumu pakete (kvlcmDir) ekleniyor
+        newData.kvlcmDir = projectSavePath;
+
         if (onProjectCreated) onProjectCreated(newData);
 
         selectedImagePath = "";
@@ -318,12 +382,13 @@ void RightPanel::render(float displayWidth, float displayHeight) {
         isProcessingImage = false; // Yükleme bitti, arayüzü normale çevir
     }
 
-// ==========================================
+    // ==========================================
     // 3. OLUŞTUR BUTONU (EN ALT KISIM)
     // ==========================================
     float buttonHeight = 45.0f;
     float currentY = ImGui::GetCursorPosY();
 
+    // Dinamik boşluk hesabı (CollapsingHeader açıldığında buton aşağı itilecek)
     float spaceLeft = panelHeight - currentY - buttonHeight - 35.0f;
 
     if (spaceLeft > 0) {
@@ -344,7 +409,7 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     if (ImGui::Button("PROJEYI OLUSTUR", ImVec2(dropZoneSize.x, buttonHeight))) {
         if (!selectedImagePath.empty()) {
             // ASENKRON THREAD BAŞLATILIYOR
-            isProcessingImage = true; // Bu değişiklik artık EndDisabled'ı patlatmayacak!
+            isProcessingImage = true;
             std::string pathCopy = selectedImagePath;
 
             std::thread([this, pathCopy]() {
@@ -358,11 +423,11 @@ void RightPanel::render(float displayWidth, float displayHeight) {
                     stbir_resize_uint8(data, w, h, 0, this->rawResizedData, 256, 144, 0, 4);
                     stbi_image_free(data);
                 }
-                this->isImageReadyForGPU = true; // Thread işini bitirdiğini haber veriyor
+                this->isImageReadyForGPU = true;
             }).detach();
 
         } else {
-            // GÖRSEL YOKSA (Düz Renk Tuval - Beklemeye gerek yok anında oluştur)
+            // GÖRSEL YOKSA
             std::string finalName = std::string(projectNameBuf);
             if (finalName.empty()) {
                 finalName = "İsimsiz Proje";
@@ -381,14 +446,18 @@ void RightPanel::render(float displayWidth, float displayHeight) {
             newData.orientation = orientation;
             newData.resolution = resolution;
 
-            if (onProjectCreated) onProjectCreated(newData);
+            // YENİ: Kullanıcının belirlediği kayıt konumu pakete ekleniyor
+            newData.kvlcmDir = projectSavePath;
+
+            if (onProjectCreated) {
+                onProjectCreated(newData);
+            }
             memset(projectNameBuf, 0, sizeof(projectNameBuf));
         }
     }
 
-    ImGui::PopStyleColor(3);
+    ImGui::PopStyleColor(3); // Oluştur Butonu renkleri
 
-    // Başlangıçta Disabled yaptıysak, şimdi EndDisabled yapıyoruz.
     if (isDisabled) ImGui::EndDisabled();
 
     ImGui::End();
