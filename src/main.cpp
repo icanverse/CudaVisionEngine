@@ -20,10 +20,44 @@ extern "C" {
 // YENİ UI SİSTEMİ
 #include "UI/MainUI.h"
 
+// STB IMAGE (Görsel okumak için)
+// EĞER projende başka bir yerde "#define STB_IMAGE_IMPLEMENTATION" kullanmadıysan,
+// bu satırın hemen üstüne o define'ı eklemen gerekebilir.
+#include <stb_image.h>
+
 int main() {
     std::cout << "[Kivilcim] Adim 1: Siber-Arayuz Penceresi Olusturuluyor...\n";
     int width = 1366, height = 768, channels = 3;
     GlfwInteropTarget target(width, height, channels, "Kivilcim - Sirca UI");
+
+    // ==========================================
+    // ÖZEL KIVILCIM İMLECİ (HARDWARE CURSOR) YÜKLEMESİ
+    // ==========================================
+    int cursorWidth, cursorHeight, cursorChannels;
+
+    // NOT: İmleç PNG dosyanı bu yola koymalısın (Tercihen 32x32 boyutlarında)
+    unsigned char* cursorPixels = stbi_load("lib-assets/cursor/classic20.png", &cursorWidth, &cursorHeight, &cursorChannels, 4);
+
+    if (cursorPixels) {
+        GLFWimage image;
+        image.width = cursorWidth;
+        image.height = cursorHeight;
+        image.pixels = cursorPixels;
+
+        // Tıklama noktasını (Hotspot) belirliyoruz (Sol üst köşe için 0,0)
+        int hotX = 0;
+        int hotY = 0;
+
+        // GLFW cursor'ını oluştur ve hedef pencereye bağla
+        GLFWcursor* customCursor = glfwCreateCursor(&image, hotX, hotY);
+        glfwSetCursor(target.getWindow(), customCursor);
+
+        stbi_image_free(cursorPixels); // RAM'i temizle
+        std::cout << "[Kivilcim] Ozel imlec (Cursor) donanima yuklendi.\n";
+    } else {
+        std::cerr << "[Kivilcim] HATA: Cursor PNG dosyasi bulunamadi (assets-graphics/ui/custom_cursor.png)!\n";
+    }
+    // ==========================================
 
     std::cout << "[Kivilcim] Adim 2: CUDA Donanimi Uyandiriliyor...\n";
     cudaSetDevice(0);
@@ -44,12 +78,14 @@ int main() {
     // UI Sınıfımızı Başlatıyoruz
     MainUI sircaUI(target.getWindow());
 
+    // ==========================================
+    // IMGUI İMLEÇ KONTROLÜNÜ DEVRE DIŞI BIRAK
+    // ==========================================
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    // ==========================================
+
     float timeTracker = 0.0f;
-    std::cout << "[Kivilcim] Motor Aktif. Sistem hazir.\n";
-
-    // --- ANA DÖNGÜ ---
-    // ... (Önceki kurulum kodların aynı kalıyor) ...
-
     std::cout << "[Kivilcim] Motor Aktif. Sistem hazir.\n";
 
 
@@ -95,9 +131,6 @@ int main() {
         // E. SONUÇLARI EKRANA BASMA (PBO)
         unsigned char* d_pbo = target.mapVRAM();
         if (d_pbo) {
-            // Eğer yukarıdaki Post-Process satırlarını aktif edersen:
-            // visionEngine.copyToDeviceUchar(d_pbo);
-
             // Eğer Post-Process kapalıysa, doğrudan tuvali ekrana gönder:
             cudaMemcpy(d_pbo, d_render_canvas, canvasSize, cudaMemcpyDeviceToDevice);
         }
@@ -122,8 +155,7 @@ int main() {
             double total_db = (double)total_byte / (1024.0 * 1024.0);
             double used_db = total_db - free_db;
 
-            // '\r' karakteri (Carriage Return) terminalde yeni satıra geçmeden
-            // aynı satırı temizleyip üzerine yazmayı sağlar. Böylece terminalin temiz kalır.
+            // '\r' karakteri terminalde yeni satıra geçmeden aynı satırı temizleyip üzerine yazmayı sağlar.
             std::cout << "\r[Kivilcim] FPS: " << frameCount
                       << " | VRAM Kullanim: " << (int)used_db << " MB / " << (int)total_db << " MB   " << std::flush;
 
@@ -138,6 +170,5 @@ int main() {
 
     // MainUI'nin Yıkıcısı (Destructor) kapanış işlerini otomatik halleder.
 
-    
     return 0;
 }

@@ -2,6 +2,35 @@
 #include "imgui.h"
 #include "UI/w_TopPanel.h"
 
+#include "UI/w_RightPanel.h"
+#include "imgui.h"
+#include "UI/w_TopPanel.h"
+#include <windows.h>
+#include <commdlg.h>
+#include <string>
+#include <iostream>
+
+
+// --- DOSYA SEÇİCİ YARDIMCI FONKSİYONU ---
+std::string openFileDialog() {
+    char filename[MAX_PATH];
+    OPENFILENAMEA ofn;
+    ZeroMemory(&filename, sizeof(filename));
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;  // Uygulamanın ana penceresine bağlanabilir
+    ofn.lpstrFilter = "Görsel Dosyaları\0*.png;*.jpg;*.jpeg;*.bmp\0Tüm Dosyalar\0*.*\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.lpstrTitle = "Kıvılcım: Görsel Yükle";
+    ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameA(&ofn)) {
+        return std::string(filename);
+    }
+    return ""; // İptal edilirse boş döner
+}
+
 void RightPanel::render(float displayWidth, float displayHeight) {
     float panelWidth = 450.0f;
     float topPanelHeight = TopPanel::getPanelHeight();
@@ -53,6 +82,18 @@ void RightPanel::render(float displayWidth, float displayHeight) {
 
     ImGui::InvisibleButton("DropZone", dropZoneSize);
     bool isHovered = ImGui::IsItemHovered();
+    bool isClicked = ImGui::IsItemClicked(); // Tıklanma olayını yakala
+
+    if (isClicked) {
+        std::string selectedImagePath = openFileDialog();
+
+        if (!selectedImagePath.empty()) {
+            std::cout << "[RightPanel] Secilen Gorsel: " << selectedImagePath << std::endl;
+
+            // TODO: Bu dosya yolunu (path) alıp LeftPanel'in stack'ine ekleyeceğiz
+            // VEYA doğrudan CUDA VRAM'e yükleyeceğiz.
+        }
+    }
 
     // Dropzone arka planını da biraz şeffaflaştıralım ki arkadaki cam efekti buradan da parlasın
     // IM_COL32(R, G, B, Alpha) -> Son parametre 255'ten 150'ye çekildi.
@@ -82,3 +123,4 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
 }
+

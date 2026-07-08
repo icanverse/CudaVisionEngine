@@ -224,9 +224,9 @@ __device__ inline void sLiquidFlow(float& r, float& g, float& b, float3 hitPoint
 
     sum = powf(sum, 3.0f);
 
-    r += sum * 0.1f;
-    g += sum * 0.8f;
-    b += sum * 1.0f;
+    r += sum * 1.0f;
+    g += sum * 0.4f;
+    b += sum * 0.1f;
 
 }
 
