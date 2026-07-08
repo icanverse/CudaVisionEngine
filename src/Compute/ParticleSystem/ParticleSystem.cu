@@ -5,10 +5,6 @@
 #include <cmath>
 #include <vector>
 
-// ==========================================
-// C++ SINIF MİMARİSİ (WRAPPER)
-// ==========================================
-
 ParticleSystem::ParticleSystem(int count) : numParticles(count) {
     cudaMalloc(&d_particles, numParticles * sizeof(Particle));
 
@@ -30,7 +26,7 @@ ParticleSystem::ParticleSystem(int count) : numParticles(count) {
         h_particles[i].acceleration = make_float3(0.0f, 0.0f, 0.0f);
 
         // Boyut ve Parlaklık (Min: 2.0, Max: 6.0 olsun)
-        h_particles[i].size = make_float3(20.0f, 18.0f, 24.0f);
+        h_particles[i].size = make_float3(30.0f, 28.0f, 36.0f);
         h_particles[i].intensity = 1.0f;
 
         // Renk Ataması (Ateş Böceği için Rastgele Sarımsı/Turuncu Tonlar)
