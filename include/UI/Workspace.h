@@ -1,33 +1,34 @@
 #pragma once
 #include "UI/Data/ProjectData.h"
 #include <functional>
-#include <string>
 
 class Workspace {
 public:
     Workspace();
     void render(float displayWidth, float displayHeight);
-    
-    // Projeyi çalışma alanına yüklemek için
+
     void loadProject(Kivilcim::ProjectData* project);
 
-    // Ana ekrana geri dönmek için kullanılacak sinyal
     void setOnCloseCallback(std::function<void()> callback) {
         onClose = callback;
     }
+
+    // GPU'dan gelen taze Framebuffer dokusunu (Texture) arayüze aktarır
+    void updateShaderTexture(unsigned int texID) {
+        if (activeProject) activeProject->textureID = texID;
+    }
+
+    // --- YENİ: CUDA SHADER KONTROL PARAMETRELERİ ---
+    float waveFrequency;
+    float waveSpeed;
+    float waveAmplitude;
+    float liquidColor[3];
+    float shaderBgColor[3];
+    float liquidAlpha;
 
 private:
     Kivilcim::ProjectData* activeProject;
     std::function<void()> onClose;
 
-    // Alt Panellerin Çizim Fonksiyonları
-    void renderTopMenu();
-    void renderToolbox(float displayHeight, float menuHeight);
-    void renderRightPanels(float displayWidth, float displayHeight, float menuHeight);
-    void renderCanvas(float displayWidth, float displayHeight, float menuHeight);
-    
-    // UI Değişkenleri
-    float toolboxWidth = 60.0f;
-    float rightPanelWidth = 300.0f;
-    int selectedTool = 0; // 0: Taşı, 1: Seçim, 2: Fırça, 3: Silgi vb.
+    float bgAlpha;
 };

@@ -4,9 +4,13 @@
 #include <atomic>
 #include "../UI/Data/ProjectData.h"
 
+// İleri bildirim (Incomplete type hatasını önlemek için)
+class CudaDynamicTexture;
+
 class RightPanel {
 public:
     RightPanel();
+    ~RightPanel(); // Bellek sızıntısını önleyecek destructor
     void render(float displayWidth, float displayHeight);
 
     void setOnImageImportedCallback(std::function<void(const std::string&)> callback) {
@@ -35,7 +39,7 @@ private:
     float bgColor[3];             // Arka Plan Rengi
 
     std::string selectedImagePath;
-    std::string projectSavePath;  // YENİ: Proje Kayıt Klasörü
+    std::string projectSavePath;  // Proje Kayıt Klasörü
 
     bool keepOriginalSize;
 
@@ -48,4 +52,8 @@ private:
     unsigned char* rawResizedData = nullptr;
     int loadedOrigW = 0;
     int loadedOrigH = 0;
+
+    // --- LİKİT AKIŞ (SHADER) DEĞİŞKENLERİ ---
+    CudaDynamicTexture* shaderPreviewTexture;
+    float flowTime;
 };

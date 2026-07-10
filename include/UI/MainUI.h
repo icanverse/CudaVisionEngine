@@ -2,13 +2,19 @@
 #include <GLFW/glfw3.h>
 
 #include "imgui.h"
-#include "Workspace.h"
 #include "w_RightPanel.h"
 #include "w_TopPanel.h"
 #include "w_BackgroundPanel.h"
 #include "w_LeftPanel.h"
 
-// YENİ: Motorun Çalışma Modları (State Machine)
+// ==========================================
+// YENİ: CUDA KÖPRÜLERİ VE SHADER'LAR
+// ==========================================
+#include "Workspace.h"
+#include "Compute/Shaders/LiquidShader.cuh"   // (Kendi dizin yoluna göre ayarla)
+
+class CudaDynamicTexture;
+
 enum class AppMode {
     START_SCREEN,
     WORKSPACE
@@ -21,13 +27,15 @@ private:
     RightPanel rightPanel;
     BackgroundPanel backgroundPanel;
 
-    // Mod Yöneticisi ve Çalışma Alanı Nesnesi
     AppMode currentMode = AppMode::START_SCREEN;
     Workspace workspaceUI;
 
     GLFWwindow* windowHandle;
-    unsigned int logoTextureId; // Logonun VRAM'deki adresi
+    unsigned int logoTextureId;
     ImFont* logFont;
+
+    // YENİ: Dinamik Likit Cam Tuvalimiz
+    CudaDynamicTexture* liquidCanvas;
 
 public:
     MainUI(GLFWwindow* window);

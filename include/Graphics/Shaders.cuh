@@ -227,7 +227,6 @@ __device__ inline void sLiquidFlow(float& r, float& g, float& b, float3 hitPoint
     r += sum * 1.0f;
     g += sum * 0.4f;
     b += sum * 0.1f;
-
 }
 
 __device__ inline void s3DRetroVoxel(float &r, float &g, float &b, float3 hitPoint, float gridSize) {

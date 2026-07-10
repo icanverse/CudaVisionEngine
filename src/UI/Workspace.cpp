@@ -1,153 +1,105 @@
-#include "UI/Workspace.h"
+#include "../../include/UI/Workspace.h"
 #include "imgui.h"
 #include <iostream>
 
-Workspace::Workspace() : activeProject(nullptr) {}
+Workspace::Workspace() : activeProject(nullptr) {
+    bgAlpha = 0.8f;
+
+    // --- CUDA SHADER BAŞLANGIÇ DEĞERLERİ ---
+    waveFrequency = 40.0f;
+    waveSpeed = 3.0f;
+    waveAmplitude = 0.05f;
+
+    // Kıvılcım Turuncusu
+    liquidColor[0] = 0.85f; liquidColor[1] = 0.45f; liquidColor[2] = 0.00f;
+    // Koyu Cam Grisi
+    shaderBgColor[0] = 0.05f; shaderBgColor[1] = 0.05f; shaderBgColor[2] = 0.06f;
+    liquidAlpha = 1.0f;
+}
 
 void Workspace::loadProject(Kivilcim::ProjectData* project) {
     activeProject = project;
-    std::cout << "[Workspace] Proje yuklendi: " << activeProject->name << std::endl;
+    std::cout << "[Workspace] Deneysel Laboratuvar moduna gecildi. Proje: " << activeProject->name << std::endl;
 }
 
 void Workspace::render(float displayWidth, float displayHeight) {
-    if (!activeProject) return; // Proje yoksa hiçbir şey çizme
+    if (!activeProject) return;
 
-    // 1. Üst Menü Çubuğu (File, Edit, Layer...)
-    renderTopMenu();
-    
-    // Üst menünün yüksekliğini alıyoruz ki diğer panelleri onun altına hizalayalım
-    float menuHeight = ImGui::GetFrameHeight(); 
+    ImVec2 windowSize(850.0f, 650.0f); // Arayüzü biraz büyüttük
+    ImGui::SetNextWindowPos(
+        ImVec2((displayWidth - windowSize.x) * 0.5f, (displayHeight - windowSize.y) * 0.5f),
+        ImGuiCond_FirstUseEver
+    );
+    ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
 
-    // 2. Sol Araç Kutusu (Toolbox - Fırçalar, Silgiler)
-    renderToolbox(displayHeight, menuHeight);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.08f, 0.09f, bgAlpha));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
 
-    // 3. Sağ Paneller (Katmanlar, Özellikler)
-    renderRightPanels(displayWidth, displayHeight, menuHeight);
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 
-    // 4. Orta Tuval (Canvas - Asıl görüntünün renderlanacağı yer)
-    renderCanvas(displayWidth, displayHeight, menuHeight);
-}
+    if (ImGui::Begin((activeProject->name + " - Deneysel Laboratuvar").c_str(), nullptr, flags)) {
 
-void Workspace::renderTopMenu() {
-    if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("Dosya")) {
-            if (ImGui::MenuItem("Kaydet", "Ctrl+S")) { /* Kaydetme mantığı */ }
-            if (ImGui::MenuItem("Farkli Kaydet...")) { }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Ana Ekrana Don")) {
-                if (onClose) onClose(); // MainUI'ye çıkış sinyali gönder
-            }
-            ImGui::EndMenu();
+        // ==========================================
+        // YENİ: PANELİN KENDİSİNİ LİKİT CAM YAPMAK
+        // ==========================================
+        if (activeProject->textureID > 0) {
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            ImVec2 winPos = ImGui::GetWindowPos();   // Panelin ekrandaki X, Y konumu
+            ImVec2 winSize = ImGui::GetWindowSize(); // Panelin tam Genişlik ve Yüksekliği
+
+            // Düşük seviyeli çizim API'si ile dokuyu panelin tam sınırlarına gerdir
+            drawList->AddImage(
+                (ImTextureID)(intptr_t)activeProject->textureID,
+                winPos,
+                ImVec2(winPos.x + winSize.x, winPos.y + winSize.y)
+            );
         }
-        if (ImGui::BeginMenu("Duzenle")) {
-            if (ImGui::MenuItem("Geri Al", "Ctrl+Z")) {}
-            if (ImGui::MenuItem("Ileri Al", "Ctrl+Y")) {}
-            ImGui::EndMenu();
+
+        // --- KONTROL PANELİ ---
+        if (ImGui::Button("<- Ana Ekrana Don", ImVec2(150, 35))) {
+            if (onClose) onClose();
         }
-        if (ImGui::BeginMenu("Filtreler")) {
-            if (ImGui::MenuItem("Likit Cam Efekti")) {}
-            if (ImGui::MenuItem("Bulaniklik (Blur)")) {}
-            ImGui::EndMenu();
-        }
-        ImGui::EndMainMenuBar();
+
+        ImGui::SameLine(0, 30.0f);
+        ImGui::SetNextItemWidth(300.0f);
+        ImGui::SliderFloat("Pencere Seffafligi", &bgAlpha, 0.0f, 1.0f, "Alpha: %.2f");
+        ImGui::SameLine(0, 20.0f);
+        ImGui::SliderFloat("Likit Seffafligi", &liquidAlpha, 0.0f, 1.0f, "%.2f");
+
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+        // ==========================================
+        // YENİ: DİNAMİK SHADER KONTROLLERİ
+        // ==========================================
+        ImGui::TextColored(ImVec4(0.85f, 0.45f, 0.0f, 1.0f), "[ LİKİT CAM PARAMETRELERİ ]");
+
+        ImGui::PushItemWidth(200.0f);
+        ImGui::SliderFloat("Dalga Frekansi", &waveFrequency, 5.0f, 100.0f, "%.1f");
+        ImGui::SameLine(0, 20.0f);
+        ImGui::SliderFloat("Dalga Hizi", &waveSpeed, 0.0f, 15.0f, "%.1f");
+        ImGui::SameLine(0, 20.0f);
+        ImGui::SliderFloat("Genlik (Siddet)", &waveAmplitude, 0.01f, 0.30f, "%.3f");
+        ImGui::PopItemWidth();
+
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+        ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel;
+        ImGui::Text("Likit Rengi:"); ImGui::SameLine();
+        ImGui::ColorEdit3("##LiqCol", liquidColor, colorFlags);
+
+        ImGui::SameLine(0, 30.0f);
+
+        ImGui::Text("Arka Plan:"); ImGui::SameLine();
+        ImGui::ColorEdit3("##BgCol", shaderBgColor, colorFlags);
+
+        ImGui::Dummy(ImVec2(0.0f, 15.0f));
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
     }
-}
-
-void Workspace::renderToolbox(float displayHeight, float menuHeight) {
-    ImGui::SetNextWindowPos(ImVec2(0.0f, menuHeight), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(toolboxWidth, displayHeight - menuHeight), ImGuiCond_Always);
-    
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
-    
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.13f, 1.0f));
-    
-    ImGui::Begin("Toolbox", nullptr, flags);
-    
-    // Araç Butonları (Şimdilik Metin/Harf, ileride Icon Font eklenebilir)
-    ImVec2 btnSize(toolboxWidth - 16.0f, 40.0f);
-    
-    if (ImGui::Button("TASI", btnSize)) selectedTool = 0;
-    if (ImGui::Button("SECİM", btnSize)) selectedTool = 1;
-    if (ImGui::Button("FIRCA", btnSize)) selectedTool = 2;
-    if (ImGui::Button("SİLGI", btnSize)) selectedTool = 3;
-    
     ImGui::End();
-    
-    ImGui::PopStyleColor();
+
     ImGui::PopStyleVar();
-}
-
-void Workspace::renderRightPanels(float displayWidth, float displayHeight, float menuHeight) {
-    ImGui::SetNextWindowPos(ImVec2(displayWidth - rightPanelWidth, menuHeight), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(rightPanelWidth, displayHeight - menuHeight), ImGuiCond_Always);
-    
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
-    
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.13f, 1.0f));
-    
-    ImGui::Begin("RightPanels", nullptr, flags);
-    
-    // --- ÖZELLİKLER BÖLÜMÜ ---
-    ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "PROJE OZELLIKLERI");
-    ImGui::Separator();
-    ImGui::Text("Ad: %s", activeProject->name.c_str());
-    ImGui::Text("Boyut: %dx%d px", activeProject->projectWidth, activeProject->projectHeight);
-    
-    ImGui::Dummy(ImVec2(0.0f, 20.0f));
-    
-    // --- KATMANLAR (LAYERS) BÖLÜMÜ ---
-    ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "KATMANLAR (LAYERS)");
-    ImGui::Separator();
-    
-    // Temsili Katman Listesi (Photoshop tarzı)
-    ImGui::Selectable("Katman 2 (Dinamik Efekt)");
-    ImGui::Selectable("Katman 1 (Gorsel)", true); // Seçili katman
-    ImGui::Selectable("Arka Plan");
-
-    ImGui::End();
-    
     ImGui::PopStyleColor();
-    ImGui::PopStyleVar();
-}
-
-void Workspace::renderCanvas(float displayWidth, float displayHeight, float menuHeight) {
-    // Canvas, sol araç kutusu ile sağ panelin arasında kalan devasa boşluktur.
-    float canvasX = toolboxWidth;
-    float canvasWidth = displayWidth - toolboxWidth - rightPanelWidth;
-    float canvasHeight = displayHeight - menuHeight;
-
-    ImGui::SetNextWindowPos(ImVec2(canvasX, menuHeight), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(canvasWidth, canvasHeight), ImGuiCond_Always);
-    
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
-    
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.06f, 1.0f)); // Koyu arka plan
-    
-    ImGui::Begin("CanvasArea", nullptr, flags);
-    
-    // Ekranda projenin görselini ortalayarak çizdiriyoruz
-    if (activeProject->textureID > 0) {
-        ImVec2 availSize = ImGui::GetContentRegionAvail();
-        
-        // Görselin orijinal en/boy oranını koruyarak ekrana sığdırmak için ufak bir matematik
-        float scale = std::min(availSize.x / activeProject->size.x, availSize.y / activeProject->size.y);
-        float drawW = activeProject->size.x * scale * 0.9f; // %10 boşluk payı (Padding) bırak
-        float drawH = activeProject->size.y * scale * 0.9f;
-        
-        float offsetX = (availSize.x - drawW) * 0.5f;
-        float offsetY = (availSize.y - drawH) * 0.5f;
-        
-        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + offsetX, ImGui::GetCursorPosY() + offsetY));
-        
-        // Asıl Şov: Projenin VRAM'deki piksellerini devasa bir şekilde ekrana bas!
-        ImGui::Image((ImTextureID)(intptr_t)activeProject->textureID, ImVec2(drawW, drawH), ImVec2(0, 1), ImVec2(1, 0));
-    }
-
-    ImGui::End();
-    
-    ImGui::PopStyleColor();
-    ImGui::PopStyleVar();
 }

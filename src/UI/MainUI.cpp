@@ -5,6 +5,8 @@
 #include "io/TextureUtility/TextureUtility.h"
 #include <iostream>
 
+#include "io/TextureUtility/CudaDynamicTexture.cuh"
+
 MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), logFont(nullptr) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -62,6 +64,7 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
     ImGui_ImplOpenGL3_Init("#version 130");
 
     logoTextureId = TextureUtility::LoadTextureFromFile("C:/Users/Can/CLionProjects/CudVisionEngineX/src/UI/logo.png");
+    liquidCanvas = new CudaDynamicTexture(512, 288);
 
     // ==========================================
     // SİNYAL KÖPRÜLERİ (CALLBACKS)
@@ -94,6 +97,11 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
 
 MainUI::~MainUI() {
     leftPanel.saveWorkspace();
+
+    if (liquidCanvas) {
+        delete liquidCanvas;
+    }
+
     if (logoTextureId != 0) {
         glDeleteTextures(1, &logoTextureId);
     }
@@ -119,7 +127,38 @@ void MainUI::renderPanels() {
         rightPanel.render(io.DisplaySize.x, io.DisplaySize.y);
     }
     else if (currentMode == AppMode::WORKSPACE) {
-        // PROFESYONEL ÇALIŞMA ALANI MODU (PHOTOSHOP GİBİ)
+        // ==========================================
+        // 1. CUDA SHADER'I VRAM'DE ATEŞLE (Zero-Copy)
+        // ==========================================
+
+        // A) Etkileşim verilerini topla (Zaman ve Fare)
+        float time = (float)glfwGetTime();
+        ImVec2 mousePos = ImGui::GetMousePos(); // Farenin ekrandaki anlık konumu
+
+        // B) Tuvali (Texture) CUDA'nın yazabilmesi için Surface olarak aç!
+        cudaSurfaceObject_t surface = liquidCanvas->map();
+
+        // C) YENİ: Arayüzdeki slider değerlerini çekip CUDA'ya fırlat!
+        Kivilcim::Shaders::launchLiquidFlowShader(
+            surface,
+            liquidCanvas->getWidth(),
+            liquidCanvas->getHeight(),
+            time,
+            workspaceUI.waveSpeed,    // 'flowSpeed' olarak gönderdik
+            workspaceUI.waveFrequency, // 'freq' olarak gönderdik
+            make_float3(workspaceUI.liquidColor[0], workspaceUI.liquidColor[1], workspaceUI.liquidColor[2])
+        );
+
+        // D) İşimiz bitti, tuvali kapat ve OpenGL/ImGui'ye geri ver!
+        liquidCanvas->unmap();
+
+        // ==========================================
+        // 2. ELDE EDİLEN PİKSELLERİ ARAYÜZE (UI) BAĞLA
+        // ==========================================
+
+        workspaceUI.updateShaderTexture(liquidCanvas->getTextureID());
+
+        // PROFESYONEL ÇALIŞMA ALANI MODU (Laboratuvar) Çizimi
         workspaceUI.render(io.DisplaySize.x, io.DisplaySize.y);
     }
 }

@@ -64,6 +64,10 @@ set(IMGUI_SOURCES
         include/io/UI/KvlcmProjectParser.h
         src/UI/Workspace.cpp
         include/UI/Workspace.h
+        src/io/TextureUtility/CudaDynamicTexture.cu
+        include/io/TextureUtility/CudaDynamicTexture.cuh
+        src/Compute/Shaders/LiquidShader.cu
+        include/Compute/Shaders/LiquidShader.cuh
 
 )
 
