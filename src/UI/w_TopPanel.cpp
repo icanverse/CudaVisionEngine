@@ -91,7 +91,7 @@ void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoT
         isDragging = false;
     }
 
-    // --- PENCERE KONTROL BUTONLARI (Kusursuz Windows Davranışı) ---
+    // --- PENCERE KONTROL BUTONLARI (Kusursuz Layers Davranışı) ---
     ImGui::SameLine(0, 0); // Sürükleme alanıyla butonlar arasındaki boşluğu sıfırla
 
     // Butonların kenar yuvarlatmasını sıfırla (Tam dikdörtgen yap)

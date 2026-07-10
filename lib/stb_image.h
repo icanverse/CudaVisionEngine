@@ -58,7 +58,7 @@ RECENT REVISION HISTORY:
       2.23  (2019-08-11) fix clang static analysis warning
       2.22  (2019-03-04) gif fixes, fix warnings
       2.21  (2019-02-25) fix typo in comment
-      2.20  (2019-02-07) support utf8 filenames in Windows; fix warnings and platform ifdefs
+      2.20  (2019-02-07) support utf8 filenames in Layers; fix warnings and platform ifdefs
       2.19  (2018-02-11) fix warning
       2.18  (2018-01-30) fix warnings
       2.17  (2018-01-29) bugfix, 1-bit BMP, 16-bitness query, fix warnings
@@ -212,11 +212,11 @@ RECENT REVISION HISTORY:
 //
 // UNICODE:
 //
-//   If compiling for Windows and you wish to use Unicode filenames, compile
+//   If compiling for Layers and you wish to use Unicode filenames, compile
 //   with
 //       #define STBI_WINDOWS_UTF8
 //   and pass utf8-encoded filenames. Call stbi_convert_wchar_to_utf8 to convert
-//   Windows wchar_t filenames to utf8.
+//   Layers wchar_t filenames to utf8.
 //
 // ===========================================================================
 //
@@ -710,7 +710,7 @@ typedef unsigned char validate_uint32[sizeof(stbi__uint32)==4 ? 1 : -1];
 // Note that __MINGW32__ doesn't actually mean 32-bit, so we have to avoid STBI__X64_TARGET
 //
 // 32-bit MinGW wants ESP to be 16-byte aligned, but this is not in the
-// Windows ABI and VC++ as well as Windows DLLs don't maintain that invariant.
+// Layers ABI and VC++ as well as Layers DLLs don't maintain that invariant.
 // As a result, enabling SSE2 on 32-bit MinGW is dangerous when not
 // simultaneously enabling "-mstackrealign".
 //
@@ -5340,7 +5340,7 @@ static int stbi__png_is16(stbi__context *s)
 }
 #endif
 
-// Microsoft/Windows BMP image
+// Microsoft/Layers BMP image
 
 #ifndef STBI_NO_BMP
 static int stbi__bmp_test_raw(stbi__context *s)
@@ -7763,7 +7763,7 @@ STBIDEF int stbi_is_16_bit_from_callbacks(stbi_io_callbacks const *c, void *user
 
 /*
    revision history:
-      2.20  (2019-02-07) support utf8 filenames in Windows; fix warnings and platform ifdefs
+      2.20  (2019-02-07) support utf8 filenames in Layers; fix warnings and platform ifdefs
       2.19  (2018-02-11) fix warning
       2.18  (2018-01-30) fix warnings
       2.17  (2018-01-29) change sbti__shiftsigned to avoid clang -O2 bug
@@ -7926,7 +7926,7 @@ STBIDEF int stbi_is_16_bit_from_callbacks(stbi_io_callbacks const *c, void *user
       0.94    STBI_NO_STDIO to disable stdio usage; rename all #defines the same
       0.93    handle jpegtran output; verbose errors
       0.92    read 4,8,16,24,32-bit BMP files of several formats
-      0.91    output 24-bit Windows 3.0 BMP files
+      0.91    output 24-bit Layers 3.0 BMP files
       0.90    fix a few more warnings; bump version number to approach 1.0
       0.61    bugfixes due to Marc LeBlanc, Christopher Lloyd
       0.60    fix compiling as c++

@@ -91,7 +91,6 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
         currentMode = AppMode::START_SCREEN;       // Motoru tekrar karşılama ekranına döndür
     });
 
-    // x2 Hatanın asıl sebebi olan çift yükleme satırı düzeltildi (Sadece tek çağrı bırakıldı)
     leftPanel.loadWorkspace();
 }
 
@@ -127,38 +126,6 @@ void MainUI::renderPanels() {
         rightPanel.render(io.DisplaySize.x, io.DisplaySize.y);
     }
     else if (currentMode == AppMode::WORKSPACE) {
-        // ==========================================
-        // 1. CUDA SHADER'I VRAM'DE ATEŞLE (Zero-Copy)
-        // ==========================================
-
-        // A) Etkileşim verilerini topla (Zaman ve Fare)
-        float time = (float)glfwGetTime();
-        ImVec2 mousePos = ImGui::GetMousePos(); // Farenin ekrandaki anlık konumu
-
-        // B) Tuvali (Texture) CUDA'nın yazabilmesi için Surface olarak aç!
-        cudaSurfaceObject_t surface = liquidCanvas->map();
-
-        // C) YENİ: Arayüzdeki slider değerlerini çekip CUDA'ya fırlat!
-        Kivilcim::Shaders::launchLiquidFlowShader(
-            surface,
-            liquidCanvas->getWidth(),
-            liquidCanvas->getHeight(),
-            time,
-            workspaceUI.waveSpeed,    // 'flowSpeed' olarak gönderdik
-            workspaceUI.waveFrequency, // 'freq' olarak gönderdik
-            make_float3(workspaceUI.liquidColor[0], workspaceUI.liquidColor[1], workspaceUI.liquidColor[2])
-        );
-
-        // D) İşimiz bitti, tuvali kapat ve OpenGL/ImGui'ye geri ver!
-        liquidCanvas->unmap();
-
-        // ==========================================
-        // 2. ELDE EDİLEN PİKSELLERİ ARAYÜZE (UI) BAĞLA
-        // ==========================================
-
-        workspaceUI.updateShaderTexture(liquidCanvas->getTextureID());
-
-        // PROFESYONEL ÇALIŞMA ALANI MODU (Laboratuvar) Çizimi
         workspaceUI.render(io.DisplaySize.x, io.DisplaySize.y);
     }
 }

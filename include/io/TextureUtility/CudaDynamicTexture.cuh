@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include <GLFW/glfw3.h>
 
-// YENİ: Windows / Eski GL Sürümleri için Güvenlik Kalkanı
+// YENİ: Layers / Eski GL Sürümleri için Güvenlik Kalkanı
 #ifndef GL_RGBA32F
 #define GL_RGBA32F 0x8814
 #endif

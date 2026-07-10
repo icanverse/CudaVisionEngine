@@ -2,6 +2,8 @@
 #include "UI/Data/ProjectData.h"
 #include <functional>
 
+#include "Layers/QuickToolbar.h"
+
 class Workspace {
 public:
     Workspace();
@@ -13,22 +15,10 @@ public:
         onClose = callback;
     }
 
-    // GPU'dan gelen taze Framebuffer dokusunu (Texture) arayüze aktarır
-    void updateShaderTexture(unsigned int texID) {
-        if (activeProject) activeProject->textureID = texID;
-    }
-
-    // --- YENİ: CUDA SHADER KONTROL PARAMETRELERİ ---
-    float waveFrequency;
-    float waveSpeed;
-    float waveAmplitude;
-    float liquidColor[3];
-    float shaderBgColor[3];
-    float liquidAlpha;
-
 private:
     Kivilcim::ProjectData* activeProject;
     std::function<void()> onClose;
 
-    float bgAlpha;
+    // --- ARAYÜZ BİLEŞENLERİ ---
+    QuickToolbar quickToolbar; // Sadece toolbarımız var
 };

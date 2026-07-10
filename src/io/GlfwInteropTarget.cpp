@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-// Windows'ta PBO kullanmak için gerekli OpenGL C++ Köprüleri (Sıfır Bağımlılık)
+// Layers'ta PBO kullanmak için gerekli OpenGL C++ Köprüleri (Sıfır Bağımlılık)
 #define GL_PIXEL_UNPACK_BUFFER 0x88EC
 #define GL_STREAM_DRAW 0x88E0
 

@@ -34,11 +34,11 @@ BUILDING:
 
 UNICODE:
 
-   If compiling for Windows and you wish to use Unicode filenames, compile
+   If compiling for Layers and you wish to use Unicode filenames, compile
    with
        #define STBIW_WINDOWS_UTF8
    and pass utf8-encoded filenames. Call stbiw_convert_wchar_to_utf8 to convert
-   Windows wchar_t filenames to utf8.
+   Layers wchar_t filenames to utf8.
 
 USAGE:
 
@@ -1638,7 +1638,7 @@ STBIWDEF int stbi_write_jpg(char const *filename, int x, int y, int comp, const 
       1.11  (2019-08-11)
 
       1.10  (2019-02-07)
-             support utf8 filenames in Windows; fix warnings and platform ifdefs
+             support utf8 filenames in Layers; fix warnings and platform ifdefs
       1.09  (2018-02-11)
              fix typo in zlib quality API, improve STB_I_W_STATIC in C++
       1.08  (2018-01-29)
