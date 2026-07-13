@@ -72,6 +72,10 @@ set(IMGUI_SOURCES
         include/UI/Layers/QuickToolbar.h
         src/UI/Layers/Layers.cpp
         include/UI/Layers/Layers.h
+        src/io/AssetsManager/IconManager.cpp
+        include/io/AssetsManager/IconManager.h
+        src/io/AssetsManager/IconManager.cpp
+        include/io/AssetsManager/IconManager.h
 
 )
 

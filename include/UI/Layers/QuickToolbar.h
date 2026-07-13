@@ -27,7 +27,7 @@ public:
     QuickToolbar();
     ~QuickToolbar();
 
-    void render();
+    void render(float displayWidth, float displayHeight);
 
     ActiveTool getCurrentTool() const { return currentTool; }
 private:

@@ -54,5 +54,5 @@ void Workspace::render(float displayWidth, float displayHeight) {
     // 2. ARAÇ KUTUSU (QUICK TOOLBAR)
     // ==========================================
     // Ayrı bir ImGui penceresi olarak tuvalin üzerinde yüzecek
-    quickToolbar.render();
+    quickToolbar.render(displayWidth,displayHeight);
 }
