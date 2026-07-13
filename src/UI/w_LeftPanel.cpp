@@ -65,7 +65,11 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
     ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2(xPos, yPos), ImGuiCond_Always);
 
-    ImGuiWindowFlags leftPanel_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+    ImGuiWindowFlags leftPanel_flags = ImGuiWindowFlags_NoResize |
+                                           ImGuiWindowFlags_NoCollapse |
+                                           ImGuiWindowFlags_NoMove |
+                                           ImGuiWindowFlags_NoTitleBar |
+                                           ImGuiWindowFlags_NoDocking; // YENİ
 
     ImGui::Begin("Hadi Başlayalım!", nullptr, leftPanel_flags);
     ImGui::SetWindowFontScale(1.8f);

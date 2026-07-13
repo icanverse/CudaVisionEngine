@@ -16,17 +16,18 @@ struct ToolUI_Info {
 };
 enum class ActiveTool {
     NONE,
-    REGION_SELECT,  // Serbest Seçim Aracı
-    REGION_CROP,    // Kesim
-    PAN,            // Gezinmek için
-    ZOOM,            // Büyütmek için
-    MASK_BRUSH
+    BRUSH,
+    COLOR,
+    MOVE,
+    SELECT_REGION_FREE,
+    SELECT_REGION_RECTANGLE,
+    TEXT,
 };
 
-class QuickLeftToolbar {
+class QuickLeftToolbox {
 public:
-    QuickLeftToolbar();
-    ~QuickLeftToolbar();
+    QuickLeftToolbox();
+    ~QuickLeftToolbox();
 
     void render(float displayWidth, float displayHeight);
 

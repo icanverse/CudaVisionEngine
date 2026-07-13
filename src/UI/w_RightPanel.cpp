@@ -79,7 +79,11 @@ void RightPanel::render(float displayWidth, float displayHeight) {
     ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2(xPos, yPos), ImGuiCond_Always);
 
-    ImGuiWindowFlags rightPanel_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+    ImGuiWindowFlags rightPanel_flags = ImGuiWindowFlags_NoResize |
+                                            ImGuiWindowFlags_NoCollapse |
+                                            ImGuiWindowFlags_NoMove |
+                                            ImGuiWindowFlags_NoTitleBar |
+                                            ImGuiWindowFlags_NoDocking; // YENİ
 
     ImGui::Begin("Proje Hazirlik", nullptr, rightPanel_flags);
     ImDrawList* drawList = ImGui::GetWindowDrawList();

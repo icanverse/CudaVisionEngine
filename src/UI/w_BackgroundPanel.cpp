@@ -12,12 +12,16 @@ void BackgroundPanel::render(float displayWidth, float displayHeight) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
     // Bu paneli "hayalet" yapacak olan sihirli bayraklar (Flags)
+    // Bu paneli "hayalet" yapacak olan sihirli bayraklar (Flags)
+    // Arka planı çivilemek için gereken kesin bayraklar
     ImGuiWindowFlags bgFlags = ImGuiWindowFlags_NoTitleBar |
                                ImGuiWindowFlags_NoCollapse |
                                ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoMove |
+                               ImGuiWindowFlags_NoMove |        // Hareket etmesin
                                ImGuiWindowFlags_NoBringToFrontOnFocus |
-                               ImGuiWindowFlags_NoNavFocus;
+                               ImGuiWindowFlags_NoNavFocus |
+                               ImGuiWindowFlags_NoDocking |     // Başka bir yere kenetlenmesin
+                               ImGuiWindowFlags_NoInputs;       // !!! İŞTE BU: Fare girdilerini tamamen yoksay!
 
     // Arka planı transparan yap
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));

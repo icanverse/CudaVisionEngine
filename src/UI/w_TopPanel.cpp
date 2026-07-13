@@ -20,9 +20,10 @@ void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoT
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.06f, 1.0f));
 
     // --- KAYDIRMA ÇUBUĞU İPTALİ ---
+    // --- KAYDIRMA ÇUBUĞU İPTALİ VE ÇİVİLEME ---
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                              ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-                             ImGuiWindowFlags_NoScrollWithMouse;
+                             ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDocking; // YENİ
 
     ImGui::Begin("TopPanel", nullptr, flags);
 

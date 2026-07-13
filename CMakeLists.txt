@@ -68,14 +68,16 @@ set(IMGUI_SOURCES
         include/io/TextureUtility/CudaDynamicTexture.cuh
         src/Compute/Shaders/LiquidShader.cu
         include/Compute/Shaders/LiquidShader.cuh
-        src/UI/Layers/QuickLeftToolbar.cpp
-        include/UI/Layers/QuickLeftToolbar.h
+        src/UI/Layers/QuickLeftToolbox.cpp
+        include/UI/Layers/QuickLeftToolbox.h
         src/UI/Layers/Layers.cpp
         include/UI/Layers/Layers.h
         src/io/AssetsManager/IconManager.cpp
         include/io/AssetsManager/IconManager.h
         src/io/AssetsManager/IconManager.cpp
         include/io/AssetsManager/IconManager.h
+        src/UI/Layers/QuickTopRightToolbox.cpp
+        include/UI/Layers/QuickTopRightToolbox.h
 
 )
 

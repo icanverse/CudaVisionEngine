@@ -123,14 +123,14 @@ void MainUI::newFrame() {
 void MainUI::renderPanels() {
     ImGuiIO& io = ImGui::GetIO();
 
-    if (currentMode == AppMode::START_SCREEN) {
-        // KARŞILAMA EKRANI MODU
-        backgroundPanel.render(io.DisplaySize.x, io.DisplaySize.y);
-        topPanel.render(windowHandle, io.DisplaySize.x, logoTextureId);
-        leftPanel.render(io.DisplaySize.x, logoTextureId);
-        rightPanel.render(io.DisplaySize.x, io.DisplaySize.y);
-    }
-    else if (currentMode == AppMode::WORKSPACE) {
+    // 1. KARŞILAMA EKRANINI HER ZAMAN ÇİZ (Ana pencerede kalması için)
+    backgroundPanel.render(io.DisplaySize.x, io.DisplaySize.y);
+    topPanel.render(windowHandle, io.DisplaySize.x, logoTextureId);
+    leftPanel.render(io.DisplaySize.x, logoTextureId);
+    rightPanel.render(io.DisplaySize.x, io.DisplaySize.y);
+
+    // 2. EĞER ÇALIŞMA ALANINDAYSAK, ONU DA ÇİZ (Ayrı bir Viewport penceresi olarak üstte/dışarıda açılacak)
+    if (currentMode == AppMode::WORKSPACE) {
         workspaceUI.render(io.DisplaySize.x, io.DisplaySize.y);
     }
 }
