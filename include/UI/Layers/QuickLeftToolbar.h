@@ -3,13 +3,14 @@
 #include <string>
 #include <vector>
 
+enum class Icon;
 enum class ActiveTool;
 
 struct ToolUI_Info {
     ActiveTool id;
     std::string name;
     std::string tooltip;
-    void* iconTexture;
+    Icon icon;
     std::string info;
 
 };
@@ -22,10 +23,10 @@ enum class ActiveTool {
     MASK_BRUSH
 };
 
-class QuickToolbar {
+class QuickLeftToolbar {
 public:
-    QuickToolbar();
-    ~QuickToolbar();
+    QuickLeftToolbar();
+    ~QuickLeftToolbar();
 
     void render(float displayWidth, float displayHeight);
 

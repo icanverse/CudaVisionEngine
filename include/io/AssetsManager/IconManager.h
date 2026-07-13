@@ -11,7 +11,7 @@ enum class Icon {
     Export,
     File,
     Horizontal_3_Dot,
-    İmport,
+    Import,
     Recently,
     Save,
     Oversave,

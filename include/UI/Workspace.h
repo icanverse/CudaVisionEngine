@@ -2,7 +2,7 @@
 #include "UI/Data/ProjectData.h"
 #include <functional>
 
-#include "Layers/QuickToolbar.h"
+#include "Layers/QuickLeftToolbar.h"
 
 class Workspace {
 public:
@@ -20,5 +20,5 @@ private:
     std::function<void()> onClose;
 
     // --- ARAYÜZ BİLEŞENLERİ ---
-    QuickToolbar quickToolbar; // Sadece toolbarımız var
+    QuickLeftToolbar quickToolbar; // Sadece toolbarımız var
 };

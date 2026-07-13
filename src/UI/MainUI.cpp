@@ -5,6 +5,7 @@
 #include "io/TextureUtility/TextureUtility.h"
 #include <iostream>
 
+#include "io/AssetsManager/IconManager.h"
 #include "io/TextureUtility/CudaDynamicTexture.cuh"
 
 MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), logFont(nullptr) {
@@ -63,6 +64,8 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
     ImGui_ImplGlfw_InitForOpenGL(windowHandle, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
+    IconManager::Initialize();
+
     logoTextureId = TextureUtility::LoadTextureFromFile("C:/Users/Can/CLionProjects/CudVisionEngineX/src/UI/logo.png");
     liquidCanvas = new CudaDynamicTexture(512, 288);
 
@@ -104,6 +107,8 @@ MainUI::~MainUI() {
     if (logoTextureId != 0) {
         glDeleteTextures(1, &logoTextureId);
     }
+
+    IconManager::Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

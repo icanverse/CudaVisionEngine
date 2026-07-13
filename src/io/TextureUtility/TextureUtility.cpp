@@ -42,14 +42,15 @@ unsigned int TextureUtility::LoadTextureFromFile(const char* filename) {
     // OpenGL resimleri aşağıdan yukarı okur
     stbi_set_flip_vertically_on_load(true);
 
-    unsigned char* data = stbi_load(filename, &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load(filename, &width, &height, &nrChannels, 4);
 
     if (data) {
-        GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        // Artık if-else ile 3 mü 4 mü diye kontrol etmemize gerek yok.
+        // Veriyi zorla 4 kanala çektiğimiz için format her zaman GL_RGBA'dır.
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         stbi_image_free(data);
     } else {
-        std::cout << "[HATA] Logo yuklenemedi: " << filename << "\n";
+        std::cout << "[HATA] Logo/Ikon yuklenemedi: " << filename << "\n";
         stbi_image_free(data);
         return 0;
     }

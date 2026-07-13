@@ -68,8 +68,8 @@ set(IMGUI_SOURCES
         include/io/TextureUtility/CudaDynamicTexture.cuh
         src/Compute/Shaders/LiquidShader.cu
         include/Compute/Shaders/LiquidShader.cuh
-        src/UI/Layers/QuickToolbar.cpp
-        include/UI/Layers/QuickToolbar.h
+        src/UI/Layers/QuickLeftToolbar.cpp
+        include/UI/Layers/QuickLeftToolbar.h
         src/UI/Layers/Layers.cpp
         include/UI/Layers/Layers.h
         src/io/AssetsManager/IconManager.cpp
