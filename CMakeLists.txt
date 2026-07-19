@@ -74,10 +74,17 @@ set(IMGUI_SOURCES
         include/UI/Layers/Layers.h
         src/io/AssetsManager/IconManager.cpp
         include/io/AssetsManager/IconManager.h
-        src/io/AssetsManager/IconManager.cpp
-        include/io/AssetsManager/IconManager.h
         src/UI/Layers/QuickTopRightToolbox.cpp
         include/UI/Layers/QuickTopRightToolbox.h
+        src/UI/Layers/QuickTopCenterToolbox.cpp
+        include/UI/Layers/QuickTopCenterToolbox.h
+        src/UI/Layers/QuickRightToolbox.cpp
+        include/UI/Layers/QuickRightToolbox.h
+        src/UI/Layers/QuickLayersToolbox.cpp
+        include/UI/Layers/QuickLayersToolbox.h
+        src/UI/Layers/WorkspaceToolboxes.cpp
+        include/UI/Layers/WorkspaceToolboxes.h
+        include/UI/Layers/ToolboxIconButton.h
 
 )
 
@@ -95,7 +102,7 @@ link_directories(
         ${CMAKE_SOURCE_DIR}/lib
         ${FFMPEG_DIR}/lib)
 
-file(GLOB_RECURSE SOURCE_FILES "src/*.cu" "src/*.cpp")
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "src/*.cu" "src/*.cpp")
 
 # Dikkat: IMGUI_SOURCES değişkeni buraya eklendi!
 add_executable(CudaVisionEngine ${SOURCE_FILES} ${IMGUI_SOURCES}
