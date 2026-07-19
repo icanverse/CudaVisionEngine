@@ -5,44 +5,38 @@
 #include <windows.h>
 #endif
 
-#include <GLFW/glfw3.h> // OpenGL sorguları için eklendi
+#include <GLFW/glfw3.h>
 
-float panelHeight = 60.0f; // Panel yüksekliği
+float panelHeight = 60.0f;
 
 void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoTextureId) {
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
 
-    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(displayWidth, panelHeight), ImGuiCond_Always);
+    // Paneli ana pencereye hapseder
+    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, panelHeight), ImGuiCond_Always);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-
-    // --- RENK AYARI ---
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.05f, 0.06f, 1.0f));
 
-    // --- KAYDIRMA ÇUBUĞU İPTALİ ---
-    // --- KAYDIRMA ÇUBUĞU İPTALİ VE ÇİVİLEME ---
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                              ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-                             ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDocking; // YENİ
+                             ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDocking;
 
     ImGui::Begin("TopPanel", nullptr, flags);
 
-    // Pencerenin köşe koordinatlarını al
-    ImVec2 minPos = ImGui::GetWindowPos(); // Sol üst köşe
-    ImVec2 maxPos = ImVec2(minPos.x + ImGui::GetWindowWidth(), minPos.y + ImGui::GetWindowHeight()); // Sağ alt köşe
+    ImVec2 minPos = ImGui::GetWindowPos();
+    ImVec2 maxPos = ImVec2(minPos.x + ImGui::GetWindowWidth(), minPos.y + ImGui::GetWindowHeight());
 
-    // Renkleri belirle (Üstten alta doğru koyulaşan bir turuncu/siyah gradyanı)
     ImU32 colorTopLeft  = IM_COL32(55, 30, 10, 255);
     ImU32 colorTopRight = IM_COL32(55, 30, 10, 255);
     ImU32 colorBotLeft  = IM_COL32(0, 0, 0, 255);
     ImU32 colorBotRight = IM_COL32(0, 0, 0, 255);
 
-    // Arka plana gradyan dikdörtgeni çiz
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    // Ekrana ilk bu çizileceği için arkada kalacak, UI elemanları bunun üstüne binecek
     drawList->AddRectFilledMultiColor(minPos, maxPos, colorTopLeft, colorTopRight, colorBotRight, colorBotLeft);
 
-    // --- LOGO ÇİZİMİ ---
     if (logoTextureId != 0) {
         float padding = 16.0f;
         float logoHeight = panelHeight - padding;
@@ -62,13 +56,11 @@ void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoT
         ImGui::SameLine();
     }
 
-    // --- SÜRÜKLEME ALANI (DRAG AREA) ---
     ImGui::SetCursorPosY(0.0f);
 
     float buttonWidth = panelHeight;
     float buttonHeight = panelHeight;
 
-    // Butonların kaplayacağı alanı tam olarak hesaplayıp sürükleme alanını sınırlandırıyoruz
     float dragAreaWidth = displayWidth - ImGui::GetCursorPosX() - (buttonWidth * 2.0f);
     if (dragAreaWidth < 10.0f) dragAreaWidth = 10.0f;
 
@@ -92,39 +84,32 @@ void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoT
         isDragging = false;
     }
 
-    // --- PENCERE KONTROL BUTONLARI (Kusursuz Layers Davranışı) ---
-    ImGui::SameLine(0, 0); // Sürükleme alanıyla butonlar arasındaki boşluğu sıfırla
-
-    // Butonların kenar yuvarlatmasını sıfırla (Tam dikdörtgen yap)
+    ImGui::SameLine(0, 0);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 
-    // "-" (Simge Durumuna Küçült) Butonu
-    ImGui::SetCursorPosY(0.0f); // Panelin tam en üstünden başla
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f)); // Varsayılan: Şeffaf
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.1f)); // Üzerine gelince: Hafif saydam beyaz
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.2f));  // Tıklanırken: Biraz daha belirgin beyaz
+    ImGui::SetCursorPosY(0.0f);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.1f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.2f));
 
     if (ImGui::Button("-", ImVec2(buttonWidth, buttonHeight))) glfwIconifyWindow(window);
 
-    ImGui::PopStyleColor(3); // "-" butonu için açılan 3 renk kuralını kapat
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine(0, 0);
 
-    ImGui::SameLine(0, 0); // "-" butonuyla "X" butonu arasındaki boşluğu sıfırla
-
-    // "X" (Kapat) Butonu
-    ImGui::SetCursorPosY(0.0f); // Panelin tam en üstünden başla
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f)); // Varsayılan: Şeffaf
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.1f, 0.15f, 1.0f)); // Üzerine gelince: Kırmızı
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));  // Tıklanırken: Koyu Kırmızı
+    ImGui::SetCursorPosY(0.0f);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.1f, 0.15f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));
 
     if (ImGui::Button("X", ImVec2(buttonWidth, buttonHeight))) glfwSetWindowShouldClose(window, 1);
 
-    ImGui::PopStyleColor(3); // "X" butonu için açılan 3 renk kuralını kapat
-
-    ImGui::PopStyleVar(); // FrameRounding sıfırlamasını geri al
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar();
 
     ImGui::End();
-    ImGui::PopStyleColor(); // Pencere arka planı Pop
-    ImGui::PopStyleVar();   // Pencere kenar yuvarlatması Pop
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
 }
 
 float TopPanel::getPanelHeight() {

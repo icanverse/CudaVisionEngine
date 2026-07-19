@@ -5,14 +5,12 @@
 #include "imgui.h"
 #include "UI/w_TopPanel.h"
 
-// --- YENİ: KAYIT PARSER'I VE GÖRSEL YÜKLEYİCİLER ---
 #include <stb_image.h>
 #include <stb_image_resize.h>
 #include <GLFW/glfw3.h>
 
 #include "io/UI/KvlcmProjectParser.h"
 
-// Linker çakışmasını önlemek için 'static' tanımlandı
 static unsigned int CreateSolidColorTexture_Local(float r, float g, float b) {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -46,14 +44,14 @@ static unsigned int LoadThumbnailTexture_Local(const std::string& path, int targ
     return textureID;
 }
 
-// --- RENDER DÖNGÜSÜ ---
 void LeftPanel::render(float displayWidth, float displayHeight) {
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
     float topPanelHeight = TopPanel::getPanelHeight();
     float realScreenHeight = ImGui::GetIO().DisplaySize.y;
 
     float panelWidth = 840.0f;
-    float xPos = 15.0f;
-    float yPos = 50.0f + topPanelHeight * 0.3f;
+    float xPos = viewport->Pos.x + 15.0f;
+    float yPos = viewport->Pos.y + 50.0f + topPanelHeight * 0.3f;
     float panelHeight = realScreenHeight - yPos - 15.0f;
 
     if (panelHeight < 100.0f) panelHeight = 100.0f;
@@ -62,16 +60,18 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.02f, 0.02f, 0.03f, 0.6f));
 
+    // Paneli ana pencereye hapseder
+    ImGui::SetNextWindowViewport(viewport->ID);
     ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2(xPos, yPos), ImGuiCond_Always);
 
     ImGuiWindowFlags leftPanel_flags = ImGuiWindowFlags_NoResize |
-                                           ImGuiWindowFlags_NoCollapse |
-                                           ImGuiWindowFlags_NoMove |
-                                           ImGuiWindowFlags_NoTitleBar |
-                                           ImGuiWindowFlags_NoDocking; // YENİ
+                                       ImGuiWindowFlags_NoCollapse |
+                                       ImGuiWindowFlags_NoMove |
+                                       ImGuiWindowFlags_NoTitleBar |
+                                       ImGuiWindowFlags_NoDocking;
 
-    ImGui::Begin("Hadi Başlayalım!", nullptr, leftPanel_flags);
+    ImGui::Begin("Hadi Baslayalim!", nullptr, leftPanel_flags);
     ImGui::SetWindowFontScale(1.8f);
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Hadi Baslayalim!");
     ImGui::SetWindowFontScale(1.0f);
@@ -110,7 +110,6 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
                 projectStack[i].isSelected = true;
             }
 
-            // --- ÇİFT TIKLAMA KONTROLÜ (GÖRSEL İÇİN) ---
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 std::cout << "[UI] Projeye CIFT TIKLANDI: " << projectStack[i].name << std::endl;
                 if (onProjectDoubleClicked) onProjectDoubleClicked(projectStack[i].id);
@@ -119,7 +118,6 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
             if (ImGui::Button("Gorsel\nYok", ImVec2(tileWidth, tileHeight))) {
                 std::cout << "[UI] Proje secildi: " << projectStack[i].name << std::endl;
             }
-            // ---  ÇİFT TIKLAMA KONTROLÜ (NORMAL BUTON İÇİN) ---
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 std::cout << "[UI] Projeye CIFT TIKLANDI: " << projectStack[i].name << std::endl;
                 if (onProjectDoubleClicked) onProjectDoubleClicked(projectStack[i].id);
@@ -151,12 +149,11 @@ void LeftPanel::render(float displayWidth, float displayHeight) {
     ImGui::PopStyleVar(2);
 }
 
-// --- YENİ PROJE EKLEME ---
 void LeftPanel::addProjectToStack(Kivilcim::ProjectData newProject) {
     if (newProject.id == 0) {
         newProject.id = projectCounter++;
     } else if (newProject.id >= projectCounter) {
-        projectCounter = newProject.id + 1; // ID sayacını disktan gelen veriye göre senkronize et
+        projectCounter = newProject.id + 1;
     }
 
     if (newProject.name == "İsimsiz-1" || newProject.name.empty()) {
@@ -167,14 +164,9 @@ void LeftPanel::addProjectToStack(Kivilcim::ProjectData newProject) {
     std::cout << "[Kivilcim UI] Proje eklendi: " << newProject.name << std::endl;
 }
 
-// --- ÇALIŞMA ALANINI DİSKTEN YÜKLE ---
-// --- ÇALIŞMA ALANINI DİSKTEN YÜKLE ---
-// --- ÇALIŞMA ALANINI DİSKTEN YÜKLE ---
 void LeftPanel::loadWorkspace() {
-    // YENİ: Okumaya başlamadan önce mevcut listeyi tamamen sıfırla (X2 Kopyalanma BUG'ını sonsuza dek çözer)
     projectStack.clear();
 
-    // Yolu doğrudan masaüstüne verdik
     std::vector<Kivilcim::ProjectData> savedProjects = Kivilcim::KvlcmProjectParser::load("C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj");
 
     for (auto it = savedProjects.rbegin(); it != savedProjects.rend(); ++it) {
@@ -189,8 +181,7 @@ void LeftPanel::loadWorkspace() {
         this->addProjectToStack(p);
     }
 }
-// --- ÇALIŞMA ALANINI DİSKE KAYDET ---
+
 void LeftPanel::saveWorkspace() {
-    // Yolu doğrudan masaüstüne verdik
     Kivilcim::KvlcmProjectParser::save("C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj", projectStack);
 }
