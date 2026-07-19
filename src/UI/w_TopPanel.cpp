@@ -7,7 +7,11 @@
 
 #include <GLFW/glfw3.h>
 
-float panelHeight = 60.0f;
+// DUZELTME: "static" eklendi. Onceden bu global bir degiskendi ve baska bir
+// .cpp dosyasinda ayni isimde global bir sey tanimlanirsa ODR (One Definition
+// Rule) ihlali / link hatasi riski vardi. Artik bu degisken sadece bu
+// translation unit'e ozel.
+static float panelHeight = 60.0f;
 
 void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoTextureId) {
     ImGuiViewport* viewport = ImGui::GetMainViewport();

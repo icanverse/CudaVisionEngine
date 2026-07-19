@@ -1,24 +1,29 @@
 #include "imgui.h"
 #include <iostream>
 #include <thread>
+#include <cstdlib>
 
 #ifdef _WIN32
 #include <windows.h>
 #include <commdlg.h>
+#include <shlobj.h>
 #endif
 
 #include "UI/w_RightPanel.h"
 #include "../io/TextureUtility/CudaDynamicTexture.cuh"
 #include "../Compute/Shaders/LiquidShader.cuh"
 
+// DUZELTME: Ayni header 6 kez tekrar include edilmisti, tek satira indirildi
+// (include guard'i olan bir header icin zararsizdi ama gereksizdi).
+#include "GLFW/glfw3native.h"
 
-
-#include "GLFW/glfw3native.h"
-#include "GLFW/glfw3native.h"
-#include "GLFW/glfw3native.h"
-#include "GLFW/glfw3native.h"
-#include "GLFW/glfw3native.h"
-#include "GLFW/glfw3native.h"
+// DUZELTME: Bu iki header eksikti. Asil bug buradan kaynaklaniyordu:
+// gorsel decode/resize islemi hic yapilmiyordu cunku bu fonksiyonlar
+// tanimli degildi. (Ayni mantik w_LeftPanel.cpp'deki
+// LoadThumbnailTexture_Local icinde zaten vardi, ama RightPanel'e hic
+// tasinmamisti.)
+#include <stb_image.h>
+#include <stb_image_resize.h>
 
 RightPanel::RightPanel() {
     memset(projectNameBuf, 0, sizeof(projectNameBuf));
@@ -43,9 +48,17 @@ RightPanel::~RightPanel() {
         delete shaderPreviewTexture;
         shaderPreviewTexture = nullptr;
     }
+    // NOT: Eger "PROJEYI OLUSTUR" butonuna tiklandiktan sonra pencere
+    // kapatilirsa, asagida detach() edilen arka plan thread'i hala
+    // calisiyor olabilir ve bu durumda thread, artik yok edilmis olan
+    // "this" nesnesine erisip cokmeye (UB) sebep olabilir. Bunu tam
+    // cozmek icin RightPanel.h'a bir "std::thread workerThread;" (veya
+    // std::atomic<bool> tabanli bir "alive" bayragi) eklenip burada
+    // join() edilmesi gerekir. Header dosyasi elimde olmadigi icin bu
+    // degisikligi burada yapamadim, sadece isaret ediyorum.
 }
 
-// Windows Dosya Seçici Fonksiyonu
+// Windows Dosya Secici Fonksiyonu
 #ifdef _WIN32
 std::string openFileDialog() {
     char filename[MAX_PATH];
@@ -65,9 +78,32 @@ std::string openFileDialog() {
     }
     return "";
 }
+
+// DUZELTME: "Gozat..." butonu onceden bos govdeliydi, hicbir sey yapmiyordu.
+// Klasor secim dialogu eklendi.
+std::string openFolderDialog() {
+    char path[MAX_PATH];
+    BROWSEINFOA bi = { 0 };
+    bi.lpszTitle = "Proje Kayit Klasorunu Sec";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+
+    LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+    if (pidl != nullptr) {
+        std::string result;
+        if (SHGetPathFromIDListA(pidl, path)) {
+            result = std::string(path);
+        }
+        CoTaskMemFree(pidl);
+        return result;
+    }
+    return "";
+}
 #else
-// Windows dışı bir sistemde derlenirse hata vermemesi için boş döndür
+// Windows disi bir sistemde derlenirse hata vermemesi icin bos donduruyor
 std::string openFileDialog() {
+    return "";
+}
+std::string openFolderDialog() {
     return "";
 }
 #endif
@@ -293,6 +329,11 @@ void RightPanel::render(float displayWidth, float displayHeight) {
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.22f, 1.0f));
         if (ImGui::Button("Gozat...", ImVec2(panelWidth * 0.2f, 0))) {
+            // DUZELTME: onceden bu buton hicbir sey yapmiyordu.
+            std::string chosenFolder = openFolderDialog();
+            if (!chosenFolder.empty()) {
+                projectSavePath = chosenFolder;
+            }
         }
         ImGui::PopStyleColor();
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -364,8 +405,56 @@ void RightPanel::render(float displayWidth, float displayHeight) {
             isProcessingImage = true;
             std::string pathCopy = selectedImagePath;
 
+            // ==========================================
+            // DUZELTME: ASIL BUG BURADAYDI.
+            // Onceden bu thread SADECE "isImageReadyForGPU = true" yapiyordu;
+            // gorsel hicbir zaman diskten okunup (stbi_load) yeniden
+            // boyutlandirilmiyordu (stbir_resize_uint8). Sonuc olarak
+            // rawResizedData hep bos kaliyor, asagidaki render() bloğundaki
+            // "if (rawResizedData)" hic calismiyor, textureID 0 kaliyor ve
+            // secilen gorsel projeye hic yansimiyordu. Ayni decode/resize
+            // mantigi zaten w_LeftPanel.cpp'deki LoadThumbnailTexture_Local
+            // icinde vardi, buraya hic tasinmamisti.
+            //
+            // NOT (thread guvenligi): rawResizedData / loadedOrigW /
+            // loadedOrigH / isImageReadyForGPU / isProcessingImage bu thread
+            // ile ana thread arasinda mutex/atomic olmadan paylasiliyor.
+            // Pratikte "once veriyi yaz, en son bayragi true yap" sirasi
+            // race condition ihtimalini dusurur, ama en dogrusu bu
+            // degiskenleri header'da std::atomic yapmak olurdu.
             std::thread([this, pathCopy]() {
-                this->isImageReadyForGPU = true;
+                int w = 0, h = 0, channels = 0;
+                stbi_set_flip_vertically_on_load(true);
+                unsigned char* data = stbi_load(pathCopy.c_str(), &w, &h, &channels, 4);
+
+                if (!data) {
+                    std::cerr << "[RightPanel] Gorsel yuklenemedi: " << pathCopy << std::endl;
+                    this->isProcessingImage = false; // UI'i kilitli birakma
+                    return;
+                }
+
+                unsigned char* resized = (unsigned char*)malloc(256 * 144 * 4);
+                if (!resized) {
+                    std::cerr << "[RightPanel] Bellek ayrilamadi (thumbnail resize)" << std::endl;
+                    stbi_image_free(data);
+                    this->isProcessingImage = false;
+                    return;
+                }
+
+                int resizeOk = stbir_resize_uint8(data, w, h, 0, resized, 256, 144, 0, 4);
+                stbi_image_free(data);
+
+                if (!resizeOk) {
+                    std::cerr << "[RightPanel] Yeniden boyutlandirma basarisiz: " << pathCopy << std::endl;
+                    free(resized);
+                    this->isProcessingImage = false;
+                    return;
+                }
+
+                this->loadedOrigW = w;
+                this->loadedOrigH = h;
+                this->rawResizedData = resized;   // veri once yazilir
+                this->isImageReadyForGPU = true;  // bayrak en son set edilir
             }).detach();
 
         } else {

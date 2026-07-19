@@ -11,6 +11,12 @@
 
 #include "io/UI/KvlcmProjectParser.h"
 
+// DUZELTME: Hardcoded yol tek bir yerde toplandi. Bu hala kullaniciya ozel
+// bir yol (portable degil), ama en azindan artik iki farkli fonksiyon
+// icinde ayri ayri yazilmis string literal olarak durmuyor. Ideal cozum
+// bunu bir config/settings dosyasindan ya da (orn. %APPDATA%) okumak olurdu.
+static const std::string kWorkspaceFilePath = "C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj";
+
 static unsigned int CreateSolidColorTexture_Local(float r, float g, float b) {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -26,11 +32,31 @@ static unsigned int LoadThumbnailTexture_Local(const std::string& path, int targ
     int w, h, channels;
     stbi_set_flip_vertically_on_load(true);
     unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 4);
-    if (!data) return 0;
+    if (!data) {
+        std::cerr << "[LeftPanel] Gorsel yuklenemedi: " << path << std::endl;
+        return 0;
+    }
 
     outOrigW = w; outOrigH = h;
+
     unsigned char* resizedData = (unsigned char*)malloc(targetW * targetH * 4);
-    stbir_resize_uint8(data, w, h, 0, resizedData, targetW, targetH, 0, 4);
+    if (!resizedData) {
+        // DUZELTME: malloc basarisiz olursa (bellek yetersiz) once yuklenen
+        // orijinal veriyi serbest birakip guvenli sekilde 0 donuyoruz.
+        std::cerr << "[LeftPanel] Bellek ayrilamadi (thumbnail resize): " << path << std::endl;
+        stbi_image_free(data);
+        return 0;
+    }
+
+    // DUZELTME: stbir_resize_uint8 basari/basarisizlik donduruyor, artik kontrol ediliyor.
+    int resizeOk = stbir_resize_uint8(data, w, h, 0, resizedData, targetW, targetH, 0, 4);
+    stbi_image_free(data);
+
+    if (!resizeOk) {
+        std::cerr << "[LeftPanel] Yeniden boyutlandirma basarisiz: " << path << std::endl;
+        free(resizedData);
+        return 0;
+    }
 
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -40,7 +66,6 @@ static unsigned int LoadThumbnailTexture_Local(const std::string& path, int targ
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, targetW, targetH, 0, GL_RGBA, GL_UNSIGNED_BYTE, resizedData);
 
     free(resizedData);
-    stbi_image_free(data);
     return textureID;
 }
 
@@ -165,9 +190,17 @@ void LeftPanel::addProjectToStack(Kivilcim::ProjectData newProject) {
 }
 
 void LeftPanel::loadWorkspace() {
+    // NOT: Burada onceden var olan GPU texture'lar (varsa) serbest
+    // birakilmiyor. projectStack her seferinde temizlenip yeniden
+    // dolduruldugu icin, eger bu fonksiyon birden fazla kez cagrilirsa
+    // eski textureID'ler icin glDeleteTextures hic cagrilmadan kaybolur
+    // (GPU bellek sizintisi). Uygulama omru boyunca sadece bir kez
+    // cagriliyorsa risk dusuk, ama tekrarli cagri senaryosu varsa
+    // projectStack.clear()'dan once mevcut textureID'leri glDeleteTextures
+    // ile temizlemek gerekir.
     projectStack.clear();
 
-    std::vector<Kivilcim::ProjectData> savedProjects = Kivilcim::KvlcmProjectParser::load("C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj");
+    std::vector<Kivilcim::ProjectData> savedProjects = Kivilcim::KvlcmProjectParser::load(kWorkspaceFilePath);
 
     for (auto it = savedProjects.rbegin(); it != savedProjects.rend(); ++it) {
         Kivilcim::ProjectData& p = *it;
@@ -183,5 +216,5 @@ void LeftPanel::loadWorkspace() {
 }
 
 void LeftPanel::saveWorkspace() {
-    Kivilcim::KvlcmProjectParser::save("C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj", projectStack);
+    Kivilcim::KvlcmProjectParser::save(kWorkspaceFilePath, projectStack);
 }

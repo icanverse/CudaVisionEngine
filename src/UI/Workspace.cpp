@@ -1,7 +1,15 @@
 #include "../../include/UI/Workspace.h"
+#include "UI/Layers/WorkspaceToolboxes.h"
 #include "imgui.h"
+
 #include <iostream>
 #include <string>
+
+namespace {
+// Workspace.h'in mevcut kokunu degistirmemek icin yeni paneller burada tutulur.
+// Uygulamada tek editor Workspace'i oldugu varsayimiyla durumlari korunur.
+WorkspaceToolboxes additionalToolboxes;
+}
 
 Workspace::Workspace() : activeProject(nullptr) {
 }
@@ -14,49 +22,46 @@ void Workspace::loadProject(Kivilcim::ProjectData* project) {
 void Workspace::render(float displayWidth, float displayHeight) {
     if (!activeProject) return;
 
-    // ==========================================
-    // YENİ: UNITY EDITOR GİBİ BAĞIMSIZ PENCERE ZORLAMASI
-    // ==========================================
-    ImGuiWindowClass window_class;
-    window_class.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoAutoMerge; // Asla Hub'a (Ana Pencereye) yapışma!
-    ImGui::SetNextWindowClass(&window_class);
+    ImGuiWindowClass windowClass;
+    windowClass.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoAutoMerge;
+    ImGui::SetNextWindowClass(&windowClass);
 
-    // İlk açıldığında Hub'ın boyutlarında açılır, sonra özgürdür.
     ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_Appearing);
     ImGui::SetNextWindowSize(ImVec2(displayWidth * 0.9f, displayHeight * 0.9f), ImGuiCond_Appearing);
 
-    ImGuiWindowFlags workspaceFlags = ImGuiWindowFlags_NoCollapse;
+    const ImGuiWindowFlags workspaceFlags = ImGuiWindowFlags_NoCollapse;
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.08f, 0.09f, 1.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
 
-    std::string windowTitle = "Kivilcim Editor - " + activeProject->name + "###Workspace_Main";
+    const std::string windowTitle =
+        "Kivilcim Editor - " + activeProject->name + "###Workspace_Main";
 
-    // PENCEREYİ BAŞLAT
     if (ImGui::Begin(windowTitle.c_str(), nullptr, workspaceFlags)) {
-
         if (ImGui::Button("<- Hub'a Don", ImVec2(150, 35))) {
             if (onClose) onClose();
         }
 
         ImGui::SameLine();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f);
-        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Aktif Proje: %s", activeProject->name.c_str());
+        ImGui::TextColored(
+            ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
+            "Aktif Proje: %s",
+            activeProject->name.c_str()
+        );
 
-        // ==========================================
-        // YENİ: ARAÇ KUTULARINI EDITOR'ÜN İÇİNE GÖMÜYORUZ
-        // ==========================================
-        // Artık ekranın değil, Workspace penceresinin kendi genişlik ve yüksekliğini alıyoruz
-        float editorWidth = ImGui::GetWindowSize().x;
-        float editorHeight = ImGui::GetWindowSize().y;
+        const float editorWidth = ImGui::GetWindowSize().x;
+        const float editorHeight = ImGui::GetWindowSize().y;
 
-        // Toolbar'ları dışarıda değil, BURADA (Begin ve End arasında) çağırıyoruz!
+        // Var olan iki arac kutusunun akisi aynen korunuyor.
         quickToolbar.render(editorWidth, editorHeight);
         topToolbox.render(editorWidth, editorHeight);
+
+        // Yeni paneller mevcut Workspace penceresinin icinde ciziliyor.
+        additionalToolboxes.render(editorWidth, editorHeight);
     }
 
     ImGui::End();
-
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
 }

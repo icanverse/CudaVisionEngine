@@ -1,7 +1,5 @@
 #include "../../include/UI/w_BackgroundPanel.h"
 #include "imgui.h"
-#include "../../include/UI/w_BackgroundPanel.h"
-#include "imgui.h"
 
 void BackgroundPanel::render(float displayWidth, float displayHeight) {
     ImGuiViewport* viewport = ImGui::GetMainViewport();
