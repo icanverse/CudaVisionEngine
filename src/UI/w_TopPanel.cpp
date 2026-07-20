@@ -1,4 +1,5 @@
 #include "UI/w_TopPanel.h"
+#include "UI/WorkspaceTopPanel.h"
 #include "imgui.h"
 
 #ifdef _WIN32
@@ -14,6 +15,12 @@
 static float panelHeight = 60.0f;
 
 void TopPanel::render(GLFWwindow* window, float displayWidth, unsigned int logoTextureId) {
+    // Yalnizca texture kimligini paylasir; ana TopPanel'in gorunumu ve
+    // pencere davranisi degismez.
+    if (logoTextureId != 0) {
+        WorkspaceTopPanel::setSharedLogoTexture(logoTextureId);
+    }
+
     ImGuiViewport* viewport = ImGui::GetMainViewport();
 
     // Paneli ana pencereye hapseder

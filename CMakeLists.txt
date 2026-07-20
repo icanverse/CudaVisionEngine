@@ -85,6 +85,8 @@ set(IMGUI_SOURCES
         src/UI/Layers/WorkspaceToolboxes.cpp
         include/UI/Layers/WorkspaceToolboxes.h
         include/UI/Layers/ToolboxIconButton.h
+        src/UI/WorkspaceTopPanel.cpp
+        include/UI/WorkspaceTopPanel.h
 
 )
 
