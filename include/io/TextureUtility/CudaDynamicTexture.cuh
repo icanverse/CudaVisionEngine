@@ -21,8 +21,19 @@ public:
     // ImGui'nin ekrana basması gereken Doku ID'sini verir
     GLuint getTextureID() const { return textureID; }
 
+    // ProjectData::d_imageData icindeki interleaved float goruntuyu dogrudan
+    // CUDA-OpenGL texture'ina aktarir. 1, 3 ve 4 kanal desteklenir.
+    bool updateFromDeviceData(
+        const float* deviceImageData,
+        int channels,
+        float displayValueScale = 1.0f / 255.0f
+    );
+
     int getWidth() const { return width; }
     int getHeight() const { return height; }
+
+    CudaDynamicTexture(const CudaDynamicTexture&) = delete;
+    CudaDynamicTexture& operator=(const CudaDynamicTexture&) = delete;
 
 private:
     int width, height;

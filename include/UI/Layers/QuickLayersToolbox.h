@@ -12,7 +12,16 @@ enum class LayerToolAction {
     ADD_LAYER,
     LOCK,
     UNION_LAYERS,
-    TOGGLE_VISIBLE
+    TOGGLE_VISIBLE,
+    SELECT_LAYER
+};
+
+struct LayerPanelItem {
+    int id;
+    std::string name;
+    unsigned int thumbnailTextureId = 0;
+    bool visible = true;
+    bool locked = false;
 };
 
 class QuickLayersToolbox {
@@ -23,6 +32,15 @@ public:
     void render(float displayWidth, float displayHeight);
     LayerToolAction consumeLastAction();
 
+    void setLayers(const std::vector<LayerPanelItem>& newLayers);
+    const std::vector<LayerPanelItem>& getLayers() const { return layers; }
+
+    int getSelectedLayerId() const { return selectedLayerId; }
+    int getLastChangedLayerId() const { return lastChangedLayerId; }
+
+    static float getPanelWidth() { return 300.0f; }
+    static float getPanelTop() { return 118.0f; }
+
 private:
     struct Tool {
         LayerToolAction id;
@@ -31,6 +49,13 @@ private:
         std::string tooltip;
     };
 
+    void renderToolbar(float iconSide, float spacing);
+    void renderLayerList();
+    void renderLayerRow(LayerPanelItem& layer);
+
     LayerToolAction lastAction;
+    int selectedLayerId = -1;
+    int lastChangedLayerId = -1;
     std::vector<Tool> availableTools;
+    std::vector<LayerPanelItem> layers;
 };
