@@ -22,7 +22,13 @@ enum class WorkspaceMenuAction {
     GRAYSCALE_FILTER,
     BLUR_FILTER,
     SHARPEN_FILTER,
-    LAYER_VISIBILITY_CHANGED
+    LAYER_VISIBILITY_CHANGED,
+
+
+    /// Araçlar
+    // >>> Oluştur
+    CREATE_PHYSICAL_DEPTH_LAYER,
+    CREATE_VIRTUAL_LIGHT
 };
 
 struct WorkspaceLayerMenuItem {

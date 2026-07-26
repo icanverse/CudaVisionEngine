@@ -16,6 +16,8 @@ constexpr float kWorkspacePanelHeight = 48.0f;
 constexpr float kWindowButtonSize = 32.0f;
 constexpr float kButtonGap = 4.0f;
 constexpr float kRightPadding = 8.0f;
+constexpr float kMenuPopupOffsetX = 10.0f;
+constexpr float kMenuPopupOffsetY = 4.0f;
 
 bool menuButton(const char* label, const char* popupId, float width) {
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -25,6 +27,17 @@ bool menuButton(const char* label, const char* popupId, float width) {
     ImGui::PopStyleColor(3);
 
     if (clicked) ImGui::OpenPopup(popupId);
+
+    const ImVec2 buttonMin = ImGui::GetItemRectMin();
+    const ImVec2 buttonMax = ImGui::GetItemRectMax();
+    ImGui::SetNextWindowPos(
+        ImVec2(
+            buttonMin.x + kMenuPopupOffsetX,
+            buttonMax.y + kMenuPopupOffsetY
+        ),
+        ImGuiCond_Appearing
+    );
+
     return clicked;
 }
 }
@@ -162,11 +175,38 @@ bool WorkspaceTopPanel::render(
         ImGui::EndPopup();
     }
 
+    ImGui::SameLine(0.0f, 2.0f);
+    menuButton("Araçlar", "WorkspaceToolsMenu", 68.0f);
+
+    if (ImGui::BeginPopup("WorkspaceToolsMenu")) {
+        if (ImGui::BeginMenu("Oluştur")) {
+            if (ImGui::MenuItem("Fiziksel Derinlik Katmanı")) {
+                lastAction =
+                    WorkspaceMenuAction::CREATE_PHYSICAL_DEPTH_LAYER;
+            }
+
+            if (ImGui::MenuItem("Sanal Işık")) {
+                lastAction =
+                    WorkspaceMenuAction::CREATE_VIRTUAL_LIGHT;
+            }
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndPopup();
+    }
+
     const float minimizeX = displayWidth - kRightPadding -
                             (kWindowButtonSize * 2.0f) - kButtonGap;
     const float closeX = displayWidth - kRightPadding - kWindowButtonSize;
-    const float dragAreaStartX = nextX + 58.0f + 2.0f + 58.0f + 2.0f +
-                                 76.0f + 2.0f + 70.0f + 8.0f;
+    const float dragAreaStartX =
+    nextX +
+    58.0f + 2.0f +   // Dosya
+    58.0f + 2.0f +   // Duzen
+    76.0f + 2.0f +   // Katmanlar
+    70.0f + 2.0f +   // Filtreler
+    68.0f +           // Araclar
+    8.0f;
     const float availableDragWidth = minimizeX - dragAreaStartX;
     const float dragAreaWidth = availableDragWidth > 10.0f
         ? availableDragWidth
