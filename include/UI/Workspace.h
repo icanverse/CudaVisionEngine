@@ -4,6 +4,7 @@
 
 #include "Layers/QuickLeftToolbox.h"
 #include "Layers/QuickTopRightToolbox.h"
+#include "tools/IsoDepthEditor.h"
 
 class Workspace {
 public:
@@ -23,4 +24,7 @@ private:
     // --- ARAYÜZ BİLEŞENLERİ ---
     QuickLeftToolbox quickToolbar; // Sadece toolbarımız var
     QuickTopRightToolbox topToolbox;
+
+    // --- Araçlar ---
+    Kivilcim::Tools::IsoDepthEditor isoEditor;
 };

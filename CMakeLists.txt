@@ -89,6 +89,8 @@ set(IMGUI_SOURCES
         include/UI/CanvasPanel.h
         src/UI/WorkspaceTopPanel.cpp
         include/UI/WorkspaceTopPanel.h
+        src/UI/Tools/IsoDepthEditor.cpp
+        include/UI/Tools/IsoDepthEditor.h
 
 )
 

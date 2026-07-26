@@ -183,6 +183,7 @@ bool WorkspaceTopPanel::render(
             if (ImGui::MenuItem("Fiziksel Derinlik Katmanı")) {
                 lastAction =
                     WorkspaceMenuAction::CREATE_PHYSICAL_DEPTH_LAYER;
+
             }
 
             if (ImGui::MenuItem("Sanal Işık")) {
