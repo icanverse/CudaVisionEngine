@@ -1,0 +1,1 @@
+ImGui (Immediate Mode GUI), alıştığımız geleneksel UI sistemlerinden çok farklı çalışır. Hafızada bir "Buton objesi" tutmaz; her karede (frame) her şeyi baştan çizer ve o anki durumu kontrol eder. Bu yapı, Kıvılcım gibi yüksek performanslı C++ ve CUDA projelerinde arayüzün motoru yavaşlatmasını engeller.

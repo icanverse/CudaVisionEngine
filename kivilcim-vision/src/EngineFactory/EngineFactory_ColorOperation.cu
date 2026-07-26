@@ -1,0 +1,35 @@
+#include "EngineFactory/EngineFactory.cuh"
+
+#include "OperationWrapper.cuh"
+
+EngineFactory& EngineFactory::isolateColor(
+    float targetHue,
+    float tolerance
+) {
+    OperationWrapper::isolateColor(
+        d_data,
+        width,
+        height,
+        channels,
+        targetHue,
+        tolerance
+    );
+    return *this;
+}
+
+EngineFactory& EngineFactory::colorReplacement(
+    float targetHue,
+    float tolerance,
+    float replacementHue
+) {
+    OperationWrapper::colorReplacement(
+        d_data,
+        width,
+        height,
+        channels,
+        targetHue,
+        tolerance,
+        replacementHue
+    );
+    return *this;
+}

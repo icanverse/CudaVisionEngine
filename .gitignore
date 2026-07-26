@@ -20,14 +20,21 @@ assets/
 *.ilk
 
 # Resim Çıktıları (Test sonuçlarını yüklemeyelim)
-assets/blonde.jpg
+lib
+lib-assets
+mdSource/ARCHITECTURE.md
+mdSource/CORE.md
+mdSource/GRAPHICS.md.md
+mdSource/IO.md
+mdSource/UI.md
+mdSource/USAGE.md
+mdSource/VISION.md
 
+hiyerarsi.txt
+imgui.ini
+NetworkConfig.txt
+TODO.md
 
 # İşletim Sistemi Dosyaları
 .DS_Store
 Thumbs.db
-
-# Kendime Not Dosyaları
-TODO.md
-ARC.md
-NetworkConfig.txt
