@@ -91,6 +91,8 @@ set(IMGUI_SOURCES
         include/UI/WorkspaceTopPanel.h
         src/UI/Tools/IsoDepthEditor.cpp
         include/UI/Tools/IsoDepthEditor.h
+        src/Kernels/DepthMapKernel.cu
+        include/Kernels/DepthMapKernel.cuh
 
 )
 
