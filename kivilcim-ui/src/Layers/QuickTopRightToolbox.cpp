@@ -1,57 +1,39 @@
 #include "Layers/QuickTopRightToolbox.h"
-
 #include "Layers/ToolboxIconButton.h"
 #include "imgui.h"
+#include <algorithm> // std::clamp için gerekli
 
 QuickTopRightToolbox::QuickTopRightToolbox()
     : lastAction(TopAction::NONE) {
-    availableTools.push_back({
-        TopAction::UNDO, "Geri Al", "Son islemi geri alir",
-        Icon::Undo, "Islem gecmisinde bir adim geriye gider"
-    });
-    availableTools.push_back({
-        TopAction::REDO, "Yinele", "Geri alinan islemi yineler",
-        Icon::Redo, "Islem gecmisinde bir adim ileri gider"
-    });
-    availableTools.push_back({
-        TopAction::TURN_LEFT, "Sola Dondur", "90 Derece Sola Dondur",
-        Icon::Turn_Left, "Tuvali saat yonunun tersine cevirir"
-    });
-    availableTools.push_back({
-        TopAction::TURN_RIGHT, "Saga Dondur", "90 Derece Saga Dondur",
-        Icon::Turn_Right, "Tuvali saat yonunde cevirir"
-    });
-    availableTools.push_back({
-        TopAction::ZOOM_IN, "Yakinlastir", "Tuvali Yakinlastir (+)",
-        Icon::Zoom_In, "Calisma alanina yaklasir"
-    });
-    availableTools.push_back({
-        TopAction::ZOOM_OUT, "Uzaklastir", "Tuvali Uzaklastir (-)",
-        Icon::Zoom_Out, "Calisma alanindan uzaklasir"
-    });
-    availableTools.push_back({
-        TopAction::MIRROR_HORIZONTAL, "Yatay Aynala", "Yatay Eksende Aynala",
-        Icon::Mirror_Horizontal, "Goruntuyu yatay eksende cevirir"
-    });
-    availableTools.push_back({
-        TopAction::MIRROR_VERTICAL, "Dikey Aynala", "Dikey Eksende Aynala",
-        Icon::Mirror_Vertical, "Goruntuyu dikey eksende cevirir"
-    });
+    // push_back yerine modern başlatma listesi (Initializer List)
+    availableTools = {
+        {TopAction::UNDO, "Geri Al", "Son islemi geri alir", Icon::Undo, "Islem gecmisinde bir adim geriye gider"},
+        {TopAction::REDO, "Yinele", "Geri alinan islemi yineler", Icon::Redo, "Islem gecmisinde bir adim ileri gider"},
+        {TopAction::TURN_LEFT, "Sola Dondur", "90 Derece Sola Dondur", Icon::Turn_Left, "Tuvali saat yonunun tersine cevirir"},
+        {TopAction::TURN_RIGHT, "Saga Dondur", "90 Derece Saga Dondur", Icon::Turn_Right, "Tuvali saat yonunde cevirir"},
+        {TopAction::ZOOM_IN, "Yakinlastir", "Tuvali Yakinlastir (+)", Icon::Zoom_In, "Calisma alanina yaklasir"},
+        {TopAction::ZOOM_OUT, "Uzaklastir", "Tuvali Uzaklastir (-)", Icon::Zoom_Out, "Calisma alanindan uzaklasir"},
+        {TopAction::MIRROR_HORIZONTAL, "Yatay Aynala", "Yatay Eksende Aynala", Icon::Mirror_Horizontal, "Goruntuyu yatay eksende cevirir"},
+        {TopAction::MIRROR_VERTICAL, "Dikey Aynala", "Dikey Eksende Aynala", Icon::Mirror_Vertical, "Goruntuyu dikey eksende cevirir"}
+    };
 }
 
 void QuickTopRightToolbox::render(float displayWidth, float displayHeight) {
-    const float iconSide = displayHeight / 32.0f;
-    const float padding = 10.0f;
-    const float spacing = 5.0f;
+    // TopCenter ile aynı dinamik ölçeklendirme mantığı
+    const float iconSide = std::clamp(displayHeight / 32.0f, 22.0f, 34.0f);
+    const float padding = 8.0f;
+    const float spacing = 4.0f;
     const float buttonWidth = iconSide + ImGui::GetStyle().FramePadding.x * 2.0f;
     const float toolbarWidth = padding * 2.0f +
         static_cast<float>(availableTools.size()) * buttonWidth +
         static_cast<float>(availableTools.size() - 1) * spacing;
-    const float toolbarHeight = padding * 2.0f + iconSide +
-                                ImGui::GetStyle().FramePadding.y * 2.0f;
+    const float toolbarHeight = padding * 2.0f + iconSide + ImGui::GetStyle().FramePadding.y * 2.0f;
 
+    // Konumlandırma: Sağ üstte, Y ekseni 15.0f olarak ayarlandı
     ImGui::SetCursorPos(ImVec2(displayWidth - toolbarWidth - 15.0f, 15.0f));
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.08f, 0.09f, 0.75f));
+
+    // TopCenter ile uyumlu arka plan ve çerçeve renkleri
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.08f, 0.09f, 0.78f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.85f, 0.45f, 0.0f, 0.4f));
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 15.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.5f);
@@ -63,9 +45,13 @@ void QuickTopRightToolbox::render(float displayWidth, float displayHeight) {
 
     for (std::size_t i = 0; i < availableTools.size(); ++i) {
         const auto& tool = availableTools[i];
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.6f));
+
+        // ==========================================
+        // İŞTE İSTEDİĞİN TURUNCU HOVER EFEKTİ
+        // ==========================================
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f)); // Normal durumda şeffaf
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.55f, 0.0f, 0.7f)); // Turuncu Hover
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.65f, 0.35f, 0.0f, 1.0f)); // Tıklanma anı (Koyu Turuncu)
 
         if (ToolboxUI::IconButton(tool.name.c_str(), tool.icon, ImVec2(iconSide, iconSide))) {
             lastAction = tool.id;
