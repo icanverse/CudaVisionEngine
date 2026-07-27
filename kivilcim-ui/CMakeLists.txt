@@ -15,6 +15,15 @@ set(IMGUI_SOURCES
 
         "${IMGUI_BACKENDS_DIR}/imgui_impl_glfw.cpp"
         "${IMGUI_BACKENDS_DIR}/imgui_impl_opengl3.cpp"
+        include/Data/LayerData.h
+        include/Data/WorkspaceStateData.h
+        include/Data/ToolData.h
+        include/Data/MaskData.h
+        include/Data/EditorData.h
+        include/Data/ViewportData.h
+        include/Data/HistoryData.h
+        include/Data/ResourceData.h
+        include/Data/PreferenceData.h
 )
 
 file(GLOB_RECURSE UI_SOURCES CONFIGURE_DEPENDS

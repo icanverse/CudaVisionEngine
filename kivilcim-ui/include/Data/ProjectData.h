@@ -3,13 +3,14 @@
 #include <vector>
 #include <vector_types.h>
 
-namespace Kivilcim {
+namespace Kdata {
 
     struct ProjectData {
         int id;                     // Benzersiz proje ID'si
         std::string name;           // Proje adı (Örn: "Isimsiz 1")
         std::string date;           // Oluşturulma tarihi
         std::string imagePath;      // Orijinal görselin diskteki yolu (Görsel seçilmediyse boş kalır)
+        unsigned int proxyID;       // VRAM'deki resimin orijianlinden küçük hali.
         unsigned int textureID;     // VRAM'deki küçük resmin (thumbnail) OpenGL ID'si
 
         // --- PROJE ŞABLONU VE TUVAL (CANVAS) BİLGİLERİ ---
@@ -25,8 +26,8 @@ namespace Kivilcim {
 
         // --- GÖRSEL METADATASI (Sadece görsel yüklendiyse geçerlidir) ---
         int2 size;                  // Orijinal görsel piksel boyutları
-        int channels;
-        size_t fileSize;
+        int channels;               //
+        size_t fileSize;            //
 
         // VRAM Yönetimi
         float* d_imageData;
