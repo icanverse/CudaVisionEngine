@@ -38,8 +38,8 @@ public:
     int getSelectedLayerId() const { return selectedLayerId; }
     int getLastChangedLayerId() const { return lastChangedLayerId; }
 
-    static float getPanelWidth() { return 300.0f; }
-    static float getPanelTop() { return 118.0f; }
+    static float getPanelWidth() { return 400.0f; }
+    static float getPanelTop() { return 288.0f; }
 
 private:
     struct Tool {

@@ -120,8 +120,8 @@ void Workspace::render(
 
     ImGui::SetNextWindowSize(
         ImVec2(
-            displayWidth * 0.9f,
-            displayHeight * 0.9f
+            displayWidth * 1.24f,
+            displayHeight * 1.24f
         ),
         ImGuiCond_Appearing
     );
@@ -135,9 +135,10 @@ void Workspace::render(
         ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
     );
 
+    // Modern tasarım: Kenar yuvarlatması sıfırlandı (Keskin hatlar)
     ImGui::PushStyleVar(
         ImGuiStyleVar_WindowRounding,
-        8.0f
+        0.0f
     );
 
     ImGui::PushStyleVar(
@@ -175,7 +176,7 @@ void Workspace::render(
         // Aktif proje görüntüsünü Canvas'a aktar.
         additionalToolboxes.canvas().setProject(activeProject);
 
-        // Workspace arka plan gradyanı.
+        // Workspace arka plan gradyanı - Dikkat dağıtmayan nötr antrasit/siyah tonları
         const ImVec2 windowMin =
             ImGui::GetWindowPos();
 
@@ -185,16 +186,16 @@ void Workspace::render(
         );
 
         const ImU32 colorTopLeft =
-            IM_COL32(0, 0, 0, 255);
+            IM_COL32(22, 22, 25, 255); // Koyu mat gri
 
         const ImU32 colorTopRight =
-            IM_COL32(5, 6, 10, 255);
+            IM_COL32(22, 22, 25, 255);
 
         const ImU32 colorBottomRight =
-            IM_COL32(0, 0, 0, 255);
+            IM_COL32(10, 10, 12, 255); // Derin siyah/gri
 
         const ImU32 colorBottomLeft =
-            IM_COL32(18, 10, 5, 255);
+            IM_COL32(10, 10, 12, 255);
 
         ImGui::GetWindowDrawList()->AddRectFilledMultiColor(
             windowMin,

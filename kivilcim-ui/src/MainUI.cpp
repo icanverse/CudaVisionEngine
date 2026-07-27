@@ -66,7 +66,7 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
 
     IconManager::Initialize();
 
-    logoTextureId = TextureUtility::LoadTextureFromFile("C:/Users/Can/CLionProjects/CudVisionEngineX/src/UI/logo.png");
+    logoTextureId = TextureUtility::LoadTextureFromFile("C:/Users/Can/CLionProjects/CudaVisionEngine/lib-assets/logo.png");
     liquidCanvas = new CudaDynamicTexture(512, 288);
 
     // ==========================================

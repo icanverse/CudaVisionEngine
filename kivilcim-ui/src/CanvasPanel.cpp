@@ -3,6 +3,7 @@
 #include "TextureUtility/CudaDynamicTexture.cuh"
 
 #include <cstdint>
+#include <cmath> // Izgara kaydırma (fmodf) matematiği için eklendi
 
 CanvasPanel::CanvasPanel() = default;
 CanvasPanel::~CanvasPanel() = default;
@@ -21,10 +22,12 @@ void CanvasPanel::render(
     const float panelHeight = requestedHeight > 180.0f ? requestedHeight : 180.0f;
 
     ImGui::SetCursorPos(ImVec2(leftInset, topInset));
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.025f, 0.025f, 0.03f, 0.94f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.85f, 0.45f, 0.0f, 0.44f));
-    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 10.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.25f);
+
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.08f, 0.09f, 0.98f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.15f, 0.15f, 0.16f, 1.0f));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 8.0f));
 
     ImGui::BeginChild(
@@ -34,12 +37,15 @@ void CanvasPanel::render(
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
     );
 
-    ImGui::TextColored(ImVec4(0.95f, 0.64f, 0.30f, 1.0f), "%s", title.c_str());
+    ImGui::TextColored(ImVec4(0.90f, 0.50f, 0.15f, 1.0f), "%s", title.c_str());
     ImGui::SameLine();
     ImGui::TextDisabled("  %.0f%%", zoom * 100.0f);
     ImGui::SameLine();
     ImGui::TextDisabled("  |  Orta tus: kaydir  |  Tekerlek: zoom  |  Cift tik: sifirla");
+
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
     ImGui::Separator();
+    ImGui::PopStyleColor();
 
     ImVec2 canvasSize = ImGui::GetContentRegionAvail();
     if (canvasSize.x < 1.0f) canvasSize.x = 1.0f;
@@ -73,6 +79,8 @@ void CanvasPanel::render(
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->PushClipRect(canvasMin, canvasMax, true);
+
+    // Arkadaki deseni çizen fonksiyon çağrısı
     drawCheckerboard(drawList, canvasMin, canvasMax);
 
     if (textureId != 0 && imageWidth > 0 && imageHeight > 0) {
@@ -93,12 +101,6 @@ void CanvasPanel::render(
             imageMin.y + imageSize.y
         );
 
-        drawList->AddRectFilled(
-            ImVec2(imageMin.x - 5.0f, imageMin.y - 5.0f),
-            ImVec2(imageMax.x + 5.0f, imageMax.y + 5.0f),
-            IM_COL32(0, 0, 0, 150),
-            4.0f
-        );
         drawList->AddImage(
             (ImTextureID)(intptr_t)textureId,
             imageMin,
@@ -106,7 +108,7 @@ void CanvasPanel::render(
             ImVec2(0.0f, 1.0f),
             ImVec2(1.0f, 0.0f)
         );
-        drawList->AddRect(imageMin, imageMax, IM_COL32(210, 125, 35, 190));
+
     } else {
         const char* emptyText = "Gorsel texture'i henuz CanvasPanel'e baglanmadi";
         const ImVec2 textSize = ImGui::CalcTextSize(emptyText);
@@ -115,7 +117,7 @@ void CanvasPanel::render(
                 canvasMin.x + (canvasSize.x - textSize.x) * 0.5f,
                 canvasMin.y + (canvasSize.y - textSize.y) * 0.5f
             ),
-            IM_COL32(145, 145, 152, 255),
+            IM_COL32(110, 110, 115, 255),
             emptyText
         );
     }
@@ -177,8 +179,6 @@ void CanvasPanel::setProject(const Kivilcim::ProjectData* project) {
             );
         }
 
-        // ProjectData GPU goruntusu 0-255 float araliginda tutuluyor. Bu olcek
-        // yalnizca ekrandaki RGBA32F texture icin 0-1 donusumu yapar.
         if (dynamicTexture->updateFromDeviceData(
                 project->d_imageData,
                 project->channels,
@@ -194,7 +194,6 @@ void CanvasPanel::setProject(const Kivilcim::ProjectData* project) {
         }
     }
 
-    // GPU verisi henuz hazir degilse ProjectData thumbnail texture'i kullanilir.
     dynamicTexture.reset();
     setImage(
         project->textureID,
@@ -217,27 +216,30 @@ void CanvasPanel::resetView() {
     pan = ImVec2(0.0f, 0.0f);
 }
 
+// İsim hata vermesin diye drawCheckerboard kaldı ancak modern bir grid (ızgara) çiziyor
 void CanvasPanel::drawCheckerboard(
     ImDrawList* drawList,
     const ImVec2& min,
     const ImVec2& max
 ) const {
-    constexpr float tileSize = 18.0f;
-    int row = 0;
+    // 1. Zemin rengi: Tamamen koyu, dikkat dağıtmayan mat antrasit
+    drawList->AddRectFilled(min, max, IM_COL32(16, 16, 18, 255));
 
-    for (float y = min.y; y < max.y; y += tileSize, ++row) {
-        int column = 0;
-        for (float x = min.x; x < max.x; x += tileSize, ++column) {
-            const bool light = ((row + column) % 2) == 0;
-            const ImVec2 tileMax(
-                x + tileSize < max.x ? x + tileSize : max.x,
-                y + tileSize < max.y ? y + tileSize : max.y
-            );
-            drawList->AddRectFilled(
-                ImVec2(x, y),
-                tileMax,
-                light ? IM_COL32(35, 35, 40, 255) : IM_COL32(25, 25, 29, 255)
-            );
-        }
+    // 2. Modern ızgara çizgileri (Blueprint/Node editor stili)
+    constexpr float gridSize = 32.0f;
+    const ImU32 gridColor = IM_COL32(32, 32, 36, 255); // Çok hafif belli olan ince referans çizgileri
+
+    // Kamerayı kaydırdığında (pan) ızgaranın da senkronize hareket etmesini sağlayan matematik
+    float offsetX = std::fmod(pan.x, gridSize);
+    float offsetY = std::fmod(pan.y, gridSize);
+    if (offsetX < 0) offsetX += gridSize;
+    if (offsetY < 0) offsetY += gridSize;
+
+    // Yatay ve dikey çizgileri çizerek sonsuz bir doku oluştur
+    for (float x = min.x + offsetX; x < max.x; x += gridSize) {
+        drawList->AddLine(ImVec2(x, min.y), ImVec2(x, max.y), gridColor, 1.0f);
+    }
+    for (float y = min.y + offsetY; y < max.y; y += gridSize) {
+        drawList->AddLine(ImVec2(min.x, y), ImVec2(max.x, y), gridColor, 1.0f);
     }
 }

@@ -20,8 +20,11 @@ constexpr float kMenuPopupOffsetY = 4.0f;
 
 bool menuButton(const char* label, const char* popupId, float width) {
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.85f, 0.45f, 0.0f, 0.22f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.85f, 0.45f, 0.0f, 0.34f));
+
+    // İstediğin turuncu hover ve active (tıklanma) renk vurguları
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.90f, 0.50f, 0.15f, 0.45f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.95f, 0.55f, 0.18f, 0.65f));
+
     const bool clicked = ImGui::Button(label, ImVec2(width, kWindowButtonSize));
     ImGui::PopStyleColor(3);
 
@@ -54,8 +57,12 @@ bool WorkspaceTopPanel::render(
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.05f, 0.05f, 0.06f, 1.0f));
+
+    // Modern tasarım: Kenarlar sivriltildi (6.0f -> 2.0f)
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+
+    // Panel arka planı daha nötr bir koyu gri yapıldı
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.08f, 0.09f, 1.0f));
 
     const ImGuiWindowFlags panelFlags =
         ImGuiWindowFlags_NoScrollbar |
@@ -74,13 +81,14 @@ bool WorkspaceTopPanel::render(
         minPos.y + ImGui::GetWindowHeight()
     );
 
+    // Eski kahverengi tonlar yerine modern, profesyonel antrasit renk geçişi
     ImGui::GetWindowDrawList()->AddRectFilledMultiColor(
         minPos,
         maxPos,
-        IM_COL32(55, 30, 10, 255),
-        IM_COL32(55, 30, 10, 255),
-        IM_COL32(0, 0, 0, 255),
-        IM_COL32(0, 0, 0, 255)
+        IM_COL32(32, 32, 36, 255),
+        IM_COL32(32, 32, 36, 255),
+        IM_COL32(18, 18, 20, 255),
+        IM_COL32(18, 18, 20, 255)
     );
 
     float nextX = 10.0f;
@@ -112,6 +120,12 @@ bool WorkspaceTopPanel::render(
     }
 
     const float buttonY = (kWorkspacePanelHeight - kWindowButtonSize) * 0.5f;
+
+    // Menü popup'larının görünümünü modernleştirmek için ufak bir stil müdahalesi
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.10f, 0.10f, 0.12f, 0.98f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.20f, 0.22f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.90f, 0.50f, 0.15f, 0.45f)); // Menü içi turuncu hover
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.95f, 0.55f, 0.18f, 0.65f));
 
     ImGui::SetCursorPos(ImVec2(nextX, buttonY));
     menuButton("Dosya", "WorkspaceFileMenu", 58.0f);
@@ -196,6 +210,9 @@ bool WorkspaceTopPanel::render(
         ImGui::EndPopup();
     }
 
+    // Popup renk stillerini temizle
+    ImGui::PopStyleColor(4);
+
     const float minimizeX = displayWidth - kRightPadding -
                             (kWindowButtonSize * 2.0f) - kButtonGap;
     const float closeX = displayWidth - kRightPadding - kWindowButtonSize;
@@ -241,19 +258,21 @@ bool WorkspaceTopPanel::render(
         isDragging = false;
     }
 
+    // Küçültme butonu renklerini modernize etme
     ImGui::SetCursorPos(ImVec2(minimizeX, buttonY));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.1f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 1.0f, 0.2f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.35f, 0.6f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.45f, 0.8f));
     if (ImGui::Button("-##WorkspaceMinimize", ImVec2(kWindowButtonSize, kWindowButtonSize))) {
         glfwIconifyWindow(window);
     }
     ImGui::PopStyleColor(3);
 
+    // Kapatma butonu renklerini modernize etme
     ImGui::SetCursorPos(ImVec2(closeX, buttonY));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.1f, 0.15f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.7f, 0.1f, 0.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 0.8f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.15f, 0.15f, 1.0f));
     const bool closeButtonClicked = ImGui::Button(
         "X##WorkspaceClose",
         ImVec2(kWindowButtonSize, kWindowButtonSize)
