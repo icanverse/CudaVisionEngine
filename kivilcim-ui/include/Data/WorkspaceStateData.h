@@ -12,6 +12,7 @@
 namespace Kdata {
 
     struct WorkspaceStateData {
+
         // 1. Proje ve Katman Hiyerarşisi (Diske Kaydedilenler)
         ProjectData project;
         LayerData layers;
@@ -28,6 +29,9 @@ namespace Kdata {
         HistoryData history;
         ResourceData resources;
         PreferenceData preferences;
+
+
+        bool showPreferences = false;
 
         // Proje ayağa kalktığında ilk verilerle başlatılır
         WorkspaceStateData()

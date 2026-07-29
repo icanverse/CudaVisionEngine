@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PreferencesPanel.h"
 #include "Data/WorkspaceStateData.h"
 
 struct GLFWwindow;
@@ -20,6 +21,5 @@ private:
     bool isDragging = false;
     int dragOffsetX = 0;
     int dragOffsetY = 0;
-
     inline static unsigned int sharedLogoTextureId = 0;
 };

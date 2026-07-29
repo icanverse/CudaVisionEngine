@@ -120,10 +120,21 @@ bool WorkspaceTopPanel::render(
     }
 
     ImGui::SameLine(0.0f, 2.0f);
-    menuButton("Duzen", "WorkspaceEditMenu", 58.0f);
+    menuButton("Duzen", "WorkspaceEditMenu", 58.0f); //[cite: 8]
     if (ImGui::BeginPopup("WorkspaceEditMenu")) {
-        if (ImGui::MenuItem("Geri Al", "Ctrl+Z")) state->tools.lastFiredAction = Kdata::InstantAction::UNDO;
-        if (ImGui::MenuItem("Yinele", "Ctrl+Y")) state->tools.lastFiredAction = Kdata::InstantAction::REDO;
+        if (ImGui::MenuItem("Geri Al", "Ctrl+Z")) state->tools.lastFiredAction = Kdata::InstantAction::UNDO; //[cite: 8]
+        if (ImGui::MenuItem("Yinele", "Ctrl+Y")) state->tools.lastFiredAction = Kdata::InstantAction::REDO; //[cite: 8]
+
+        ImGui::Separator();
+
+        // YENI EKLENEN KISIM: Ayarlar menusunu tetikler
+        // Eger WorkspaceStateData (state) icerisinde baska bir Editor yonetimin varsa onu kullanabilirsin.
+        // Ornek: state->editors.activeEditor = Kdata::ExclusiveEditor::PREFERENCES;
+        if (ImGui::MenuItem("Motor Tercihleri...")) {
+            // Main loop icinde PreferencesPanel::render() fonksiyonunu cagiracak bayragi kaldir.
+            state->showPreferences = true;
+        }
+
         ImGui::EndPopup();
     }
 

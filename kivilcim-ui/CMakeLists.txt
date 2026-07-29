@@ -26,7 +26,8 @@ set(IMGUI_SOURCES
         include/Data/PreferenceData.h
         src/ToolRegistry.cpp
         include/Data/ToolRegistry.h
-        include/Persistence/KvlcmBinarySerializer.h
+        src/PreferencesPanel.cpp
+        include/PreferencesPanel.h
 )
 
 file(GLOB_RECURSE UI_SOURCES CONFIGURE_DEPENDS

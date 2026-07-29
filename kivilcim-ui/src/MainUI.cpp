@@ -134,6 +134,8 @@ void MainUI::renderPanels() {
         // YENİ MİMARİ: Workspace artık tamamen aptal. Sadece state pointer'ını alıp ekrana basacak.
         workspaceUI.render(&appState, io.DisplaySize.x, io.DisplaySize.y);
     }
+
+    preferencesPanel.render(appState.showPreferences, userPrefs);
 }
 
 void MainUI::renderDrawData() {

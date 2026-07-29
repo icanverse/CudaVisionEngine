@@ -31,6 +31,9 @@ private:
 
     Kdata::WorkspaceStateData appState;
 
+    Kdata::PreferenceData userPrefs;
+    Kivilcim::UI::PreferencesPanel preferencesPanel;
+
     GLFWwindow* windowHandle;
     unsigned int logoTextureId;
     ImFont* logFont;
