@@ -12,6 +12,7 @@ namespace Kdata {
         std::string imagePath;      // Orijinal görselin diskteki yolu (Görsel seçilmediyse boş kalır)[cite: 9]
         unsigned int proxyID;       // VRAM'deki resimin orijianlinden küçük hali.[cite: 9]
         unsigned int textureID;     // VRAM'deki küçük resmin (thumbnail) OpenGL ID'si[cite: 9]
+        bool isFavorite;
 
         // --- PROJE ŞABLONU VE TUVAL (CANVAS) BİLGİLERİ ---
         bool keepOriginalSize;      // Orijinal görsel boyutları mı korunacak?[cite: 9]

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include "../../kivilcim-ui/include/Persistence/KvlcmProjectParser.h"
+#include "../../kivilcim-ui/include/Persistence/KvlcmSerializer.h"
 #include "../../kivilcim-io/include/kvlcm/MaterialLoader.h"
 #include "../../kivilcim-io/include/kvlcm/ObjLoader.h"
 #include "Scene.cuh"

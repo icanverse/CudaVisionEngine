@@ -8,7 +8,7 @@
 #include "w_TopPanel.h"
 
 // YENİ MİMARİ: Namespace Kdata'ya dönüştürüldü
-#include "Persistence/KvlcmProjectParser.h"
+#include "Persistence/KvlcmSerializer.h"
 #include "TextureUtility/TextureUtility.h"
 
 static const std::string kWorkspaceFilePath =
@@ -172,7 +172,7 @@ void LeftPanel::loadWorkspace() {
 
     // DİKKAT: Parser sınıfın eğer Kivilcim namespace içindeyse burayı o şekilde bırakıyoruz.
     // Ancak Parser'ın döndürdüğü vektör Kdata::ProjectData tipinde olmalıdır!
-    std::vector<Kdata::ProjectData> savedProjects = Kivilcim::KvlcmProjectParser::load(kWorkspaceFilePath);
+    std::vector<Kdata::ProjectData> savedProjects = Kivilcim::KvlcmSerializer::load(kWorkspaceFilePath);
 
     for (auto it = savedProjects.rbegin(); it != savedProjects.rend(); ++it) {
         Kdata::ProjectData& project = *it;
@@ -198,5 +198,5 @@ void LeftPanel::loadWorkspace() {
 }
 
 void LeftPanel::saveWorkspace() {
-    Kivilcim::KvlcmProjectParser::save(kWorkspaceFilePath, projectStack);
+    Kivilcim::KvlcmSerializer::save(kWorkspaceFilePath, projectStack);
 }
