@@ -24,6 +24,8 @@ set(IMGUI_SOURCES
         include/Data/HistoryData.h
         include/Data/ResourceData.h
         include/Data/PreferenceData.h
+        src/ToolRegistry.cpp
+        include/Data/ToolRegistry.h
 )
 
 file(GLOB_RECURSE UI_SOURCES CONFIGURE_DEPENDS

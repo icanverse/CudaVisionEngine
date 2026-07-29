@@ -6,12 +6,11 @@
 #include "w_TopPanel.h"
 #include "w_BackgroundPanel.h"
 #include "w_LeftPanel.h"
-
-// ==========================================
-// YENİ: CUDA KÖPRÜLERİ VE SHADER'LAR
-// ==========================================
 #include "Workspace.h"
 #include "Shaders/LiquidShader.cuh"
+
+// YENİ: Motorun ve arayüzün tek gerçek veri kaynağı
+#include "Data/WorkspaceStateData.h"
 
 class CudaDynamicTexture;
 
@@ -30,11 +29,12 @@ private:
     AppMode currentMode = AppMode::START_SCREEN;
     Workspace workspaceUI;
 
+    Kdata::WorkspaceStateData appState;
+
     GLFWwindow* windowHandle;
     unsigned int logoTextureId;
     ImFont* logFont;
 
-    // YENİ: Dinamik Likit Cam Tuvalimiz
     CudaDynamicTexture* liquidCanvas;
 
 public:

@@ -12,7 +12,16 @@ namespace Kdata {
         ERASE,
         SHAPES,
         TEXT,
-        COLOR_PICKER
+        COLOR_PICKER,
+
+        // Yeni eklenen merkez panel araçları:
+        SHAPE_CIRCLE,
+        SHAPE_LINE,
+        SHAPE_SQUARE,
+        VECTOR_PATH,
+        ERASER,
+        TEXT_SIZE,
+        TEXT_COLOR
     };
 
     enum class AdjustmentTool {
@@ -27,7 +36,7 @@ namespace Kdata {
 
     enum class InstantAction {
         NONE, UNDO, REDO,
-        COPY, DELETE,
+        COPY, ACTION_DELETE, // ÇAKIŞMA ÖNLENDİ: DELETE yerine ACTION_DELETE yapıldı
         ZOOM_IN, ZOOM_OUT,
         TURN_LEFT, TURN_RIGHT,
         MIRROR_HOR, MIRROR_VER,
@@ -35,7 +44,15 @@ namespace Kdata {
         LAYER_ADD, LAYER_DOWN,
         LAYER_LOCK, LAYER_VIS,
 
-        ACCEPT_ACTION, CANCEL_ACTION
+        ACCEPT_ACTION, CANCEL_ACTION,
+
+        // yeni
+        CANVAS_TURN_LEFT,
+        CANVAS_TURN_RIGHT,
+        CANVAS_ZOOM_IN,
+        CANVAS_ZOOM_OUT,
+        MIRROR_HORIZONTAL,
+        MIRROR_VERTICAL
     };
 
     enum class TextAlignment { LEFT, CENTER, RIGHT };
@@ -117,4 +134,4 @@ namespace Kdata {
         }
     };
 
-}
+} // namespace Kdata

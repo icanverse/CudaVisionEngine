@@ -1,61 +1,33 @@
 #pragma once
 
 #include "AssetsManager/IconManager.h"
+#include "Data/WorkspaceStateData.h" // YENİ: Tek Gerçek Kaynak
 
 #include <string>
 #include <vector>
-
-enum class LayerToolAction {
-    NONE,
-    MOVE_DOWN,
-    OPEN_LAYERS,
-    ADD_LAYER,
-    LOCK,
-    UNION_LAYERS,
-    TOGGLE_VISIBLE,
-    SELECT_LAYER
-};
-
-struct LayerPanelItem {
-    int id;
-    std::string name;
-    unsigned int thumbnailTextureId = 0;
-    bool visible = true;
-    bool locked = false;
-};
 
 class QuickLayersToolbox {
 public:
     QuickLayersToolbox();
     ~QuickLayersToolbox();
 
-    void render(float displayWidth, float displayHeight);
-    LayerToolAction consumeLastAction();
-
-    void setLayers(const std::vector<LayerPanelItem>& newLayers);
-    const std::vector<LayerPanelItem>& getLayers() const { return layers; }
-
-    int getSelectedLayerId() const { return selectedLayerId; }
-    int getLastChangedLayerId() const { return lastChangedLayerId; }
+    // YENİ: Doğrudan state'i alır.
+    void render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight);
 
     static float getPanelWidth() { return 400.0f; }
     static float getPanelTop() { return 288.0f; }
 
 private:
     struct Tool {
-        LayerToolAction id;
+        Kdata::InstantAction actionId; // Kdata mimarisindeki InstantAction'ı kullanıyoruz
         std::string name;
         Icon icon;
         std::string tooltip;
     };
 
-    void renderToolbar(float iconSide, float spacing);
-    void renderLayerList();
-    void renderLayerRow(LayerPanelItem& layer);
+    void renderToolbar(Kdata::WorkspaceStateData* state, float iconSide, float spacing);
+    void renderLayerList(Kdata::WorkspaceStateData* state);
+    void renderLayerRow(Kdata::WorkspaceStateData* state, Kdata::Layer& layer); // Kdata::Layer referansı kullanılıyor
 
-    LayerToolAction lastAction;
-    int selectedLayerId = -1;
-    int lastChangedLayerId = -1;
     std::vector<Tool> availableTools;
-    std::vector<LayerPanelItem> layers;
 };

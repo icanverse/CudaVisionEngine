@@ -1,32 +1,12 @@
 #pragma once
 
-#include "AssetsManager/IconManager.h"
-
-#include <string>
-#include <vector>
-
-enum class RightToolAction {
-    NONE,
-    CONTRAST,
-    TEMPERATURE
-};
+#include "Data/WorkspaceStateData.h"
 
 class QuickRightToolbox {
 public:
-    QuickRightToolbox();
-    ~QuickRightToolbox();
+    QuickRightToolbox() = default;
+    ~QuickRightToolbox() = default;
 
-    void render(float displayWidth, float displayHeight);
-    RightToolAction getCurrentTool() const { return currentTool; }
-
-private:
-    struct Tool {
-        RightToolAction id;
-        std::string name;
-        Icon icon;
-        std::string tooltip;
-    };
-
-    RightToolAction currentTool;
-    std::vector<Tool> availableTools;
+    // YENİ: Sadece state referansı alarak çalışır
+    void render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight);
 };

@@ -347,7 +347,7 @@ void RightPanel::render(float displayWidth, float displayHeight) {
         std::string finalName = std::string(projectNameBuf);
         if (finalName.empty()) { finalName = "İsimsiz Proje"; }
 
-        Kivilcim::ProjectData newData(0, finalName, selectedImagePath);
+        Kdata::ProjectData newData(0, finalName, selectedImagePath);
         newData.textureID = textureID;
         newData.size = {loadedOrigW, loadedOrigH};
         newData.projectWidth = docWidth;
@@ -431,7 +431,7 @@ void RightPanel::render(float displayWidth, float displayHeight) {
             std::string finalName = std::string(projectNameBuf);
             if (finalName.empty()) { finalName = "İsimsiz Proje"; }
 
-            Kivilcim::ProjectData newData(0, finalName, "");
+            Kdata::ProjectData newData(0, finalName, "");
             newData.size = {docWidth, docHeight};
             newData.projectWidth = docWidth;
             newData.projectHeight = docHeight;

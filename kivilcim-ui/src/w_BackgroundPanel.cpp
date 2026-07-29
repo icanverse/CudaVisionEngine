@@ -25,9 +25,9 @@ void BackgroundPanel::render(float displayWidth, float displayHeight) {
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 
-    ImGui::Begin("AnaZemin", nullptr, bgFlags);
+    ImGui::Begin("background", nullptr, bgFlags);
 
-    const char* altMetin = "Kivilcim Goruntu Motoru ile destekleniyor";
+    const char* altMetin = "Kıvılcım Görüntü Motoru ile destekleniyor";
     ImVec2 textSize = ImGui::CalcTextSize(altMetin);
 
     float paddingX = 15.0f;

@@ -11,7 +11,7 @@ namespace Kivilcim {
     class KvlcmProjectParser {
     public:
         // --- PROJELERİ DİSKE KAYDET ---
-        static void save(const std::string& filepath, const std::vector<ProjectData>& projects) {
+        static void save(const std::string& filepath, const std::vector<Kdata::ProjectData>& projects) {
             std::ofstream file(filepath);
             if (!file.is_open()) return;
 
@@ -36,8 +36,8 @@ namespace Kivilcim {
         }
 
         // --- PROJELERİ DİSKTEN OKU (AGRESİF DEBUG) ---
-        static std::vector<ProjectData> load(const std::string& filepath) {
-            std::vector<ProjectData> loadedProjects;
+        static std::vector<Kdata::ProjectData> load(const std::string& filepath) {
+            std::vector<Kdata::ProjectData> loadedProjects;
             std::ifstream file(filepath);
 
             if (!file.is_open()) {
@@ -48,7 +48,7 @@ namespace Kivilcim {
             std::cout << "[KvlcmProjectParser DEBUG] Dosya acildi. Icerik satir satir okunuyor..." << std::endl;
             std::string line;
             bool inProject = false;
-            ProjectData tempData(0, "", "");
+            Kdata::ProjectData tempData(0, "", "");
             int lineCount = 0;
 
             while (std::getline(file, line)) {
@@ -67,7 +67,7 @@ namespace Kivilcim {
                 if (line == "PROJECT_BEGIN") {
                     std::cout << "[KvlcmProjectParser DEBUG] ---> PROJECT_BEGIN BULUNDU!" << std::endl;
                     inProject = true;
-                    tempData = ProjectData(0, "", "");
+                    tempData = Kdata::ProjectData(0, "", "");
                     continue;
                 }
 

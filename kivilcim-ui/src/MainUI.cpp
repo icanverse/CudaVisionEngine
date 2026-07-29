@@ -12,17 +12,14 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    // 1. IO BAĞLAMININ ALINMASI
     ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-    // 2. TÜRKÇE KARAKTER DESTEĞİ VE FONT YÜKLEME
     static const ImWchar turkishRanges[] = {
-        0x0020, 0x00FF, // Temel Latin
-        0x0100, 0x017F, // Latin Genişletilmiş-A (Türkçe dahil)
+        0x0020, 0x00FF,
+        0x0100, 0x017F,
         0,
     };
 
-    // Ana Arayüz Fontu (Inter)
     ImFont* mainFont = io.Fonts->AddFontFromFileTTF(
         "C:/Users/Can/CLionProjects/CudVisionEngineX/lib-assets/font/Inter/static/Inter_24pt-Black.ttf",
         16.0f, nullptr, turkishRanges
@@ -32,7 +29,6 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
         std::cout << "[Sirca UI - UYARI] Inter fontu bulunamadi!\n";
     }
 
-    // Log / Terminal Fontu
     logFont = io.Fonts->AddFontFromFileTTF(
         "C:/Users/Can/CLionProjects/CudVisionEngineX/lib-assets/font/Inter/static/Inter_24pt-Black.ttf",
         14.0f, nullptr, turkishRanges
@@ -42,7 +38,6 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
         std::cout << "[Sirca UI] Inter ve JetBrains Mono fontlari basariyla yuklendi.\n";
     }
 
-    // 3. RENK PALETİ VE ENDÜSTRİYEL TASARIM
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
 
@@ -60,7 +55,6 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
     style.WindowBorderSize = 0.0f;
     style.FrameBorderSize = 0.0f;
 
-    // 4. BACKEND BAŞLATMA
     ImGui_ImplGlfw_InitForOpenGL(windowHandle, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
@@ -74,24 +68,31 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
     // ==========================================
 
     // SAĞ PANELDEN SOL PANELE OLUŞTURMA SİNYALİ
-    rightPanel.setOnProjectCreatedCallback([this](const Kivilcim::ProjectData& newProjectData) {
+    // NOT: Kivilcim namespace'i Kdata olarak güncellendi.
+    rightPanel.setOnProjectCreatedCallback([this](const Kdata::ProjectData& newProjectData) {
         std::cout << "[Kivilcim DEBUG 4] Sinyal alindi! Sola ekleniyor..." << std::endl;
         leftPanel.addProjectToStack(newProjectData);
-        leftPanel.saveWorkspace(); // Otomatik Kayıt
+        leftPanel.saveWorkspace();
     });
 
     // SOL PANELDEN GELEN ÇİFT TIKLAMA (DÜZENLE) SİNYALİ
-    leftPanel.setOnProjectDoubleClickedCallback([this](int projectID) {
-        Kivilcim::ProjectData* p = leftPanel.getProjectByID(projectID);
+    // SOL PANELDEN GELEN ÇİFT TIKLAMA (DÜZENLE) SİNYALİ
+    leftPanel.setOnProjectDoubleClickedCallback([this](const int& projectID) {
+        Kdata::ProjectData* p = leftPanel.getProjectByID(projectID);
         if (p) {
-            workspaceUI.loadProject(p);            // Projeyi çalışma alanına yükle
-            currentMode = AppMode::WORKSPACE;      // Motoru "Çalışma (Editör)" moduna geçir!
+            appState.resetState();
+            appState.project = *p;
+
+            // Motoru "Çalışma (Editör)" moduna geçir!
+            currentMode = AppMode::WORKSPACE;
         }
     });
 
+
     // ÇALIŞMA ALANINDAN "ANA EKRANA DÖN" SİNYALİ
     workspaceUI.setOnCloseCallback([this]() {
-        currentMode = AppMode::START_SCREEN;       // Motoru tekrar karşılama ekranına döndür
+        currentMode = AppMode::START_SCREEN;
+        appState.resetState(); // Ana ekrana dönerken güvenli sıfırlama
     });
 
     leftPanel.loadWorkspace();
@@ -123,15 +124,15 @@ void MainUI::newFrame() {
 void MainUI::renderPanels() {
     ImGuiIO& io = ImGui::GetIO();
 
-    // 1. KARŞILAMA EKRANINI HER ZAMAN ÇİZ (Ana pencerede kalması için)
     backgroundPanel.render(io.DisplaySize.x, io.DisplaySize.y);
     topPanel.render(windowHandle, io.DisplaySize.x, logoTextureId);
     leftPanel.render(io.DisplaySize.x, logoTextureId);
     rightPanel.render(io.DisplaySize.x, io.DisplaySize.y);
 
-    // 2. EĞER ÇALIŞMA ALANINDAYSAK, ONU DA ÇİZ (Ayrı bir Viewport penceresi olarak üstte/dışarıda açılacak)
+    // EĞER ÇALIŞMA ALANINDAYSAK, ONU DA ÇİZ
     if (currentMode == AppMode::WORKSPACE) {
-        workspaceUI.render(io.DisplaySize.x, io.DisplaySize.y);
+        // YENİ MİMARİ: Workspace artık tamamen aptal. Sadece state pointer'ını alıp ekrana basacak.
+        workspaceUI.render(&appState, io.DisplaySize.x, io.DisplaySize.y);
     }
 }
 

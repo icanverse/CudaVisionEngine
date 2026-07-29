@@ -7,11 +7,10 @@
 #include "imgui.h"
 #include "w_TopPanel.h"
 
+// YENİ MİMARİ: Namespace Kdata'ya dönüştürüldü
 #include "Persistence/KvlcmProjectParser.h"
 #include "TextureUtility/TextureUtility.h"
 
-// Bu yol halen kullaniciya ozeldir. Daha sonra ayarlar dosyasina veya
-// kullanicinin uygulama veri dizinine alinabilir.
 static const std::string kWorkspaceFilePath =
     "C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj";
 
@@ -38,28 +37,13 @@ void LeftPanel::render(
         panelHeight = 100.0f;
     }
 
-    ImGui::PushStyleVar(
-        ImGuiStyleVar_WindowRounding,
-        0.0f
-    );
-    ImGui::PushStyleVar(
-        ImGuiStyleVar_WindowBorderSize,
-        0.0f
-    );
-    ImGui::PushStyleColor(
-        ImGuiCol_WindowBg,
-        ImVec4(0.02f, 0.02f, 0.03f, 0.6f)
-    );
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.02f, 0.02f, 0.03f, 0.6f));
 
     ImGui::SetNextWindowViewport(viewport->ID);
-    ImGui::SetNextWindowSize(
-        ImVec2(panelWidth, panelHeight),
-        ImGuiCond_Always
-    );
-    ImGui::SetNextWindowPos(
-        ImVec2(xPos, yPos),
-        ImGuiCond_Always
-    );
+    ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(xPos, yPos), ImGuiCond_Always);
 
     ImGuiWindowFlags leftPanelFlags =
         ImGuiWindowFlags_NoResize
@@ -68,24 +52,15 @@ void LeftPanel::render(
         | ImGuiWindowFlags_NoTitleBar
         | ImGuiWindowFlags_NoDocking;
 
-    ImGui::Begin(
-        "Hadi Baslayalim!",
-        nullptr,
-        leftPanelFlags
-    );
+    ImGui::Begin("Hadi Baslayalim!", nullptr, leftPanelFlags);
 
     ImGui::SetWindowFontScale(1.8f);
-    ImGui::TextColored(
-        ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
-        "Hadi Baslayalim!"
-    );
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Hadi Baslayalim!");
     ImGui::SetWindowFontScale(1.0f);
     ImGui::Separator();
     ImGui::Dummy(ImVec2(0.0f, 15.0f));
 
-    float windowVisibleX2 =
-        ImGui::GetWindowPos().x
-        + ImGui::GetWindowContentRegionMax().x;
+    float windowVisibleX2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
     ImGuiStyle& style = ImGui::GetStyle();
 
@@ -99,38 +74,21 @@ void LeftPanel::render(
         ImVec2 startPos = ImGui::GetCursorPos();
 
         if (projectStack[i].textureID > 0) {
-            float originalWidth =
-                static_cast<float>(projectStack[i].size.x);
-            float originalHeight =
-                static_cast<float>(projectStack[i].size.y);
+            float originalWidth = static_cast<float>(projectStack[i].size.x);
+            float originalHeight = static_cast<float>(projectStack[i].size.y);
 
-            if (originalWidth <= 0.0f) {
-                originalWidth = tileWidth;
-            }
+            if (originalWidth <= 0.0f) originalWidth = tileWidth;
+            if (originalHeight <= 0.0f) originalHeight = tileHeight;
 
-            if (originalHeight <= 0.0f) {
-                originalHeight = tileHeight;
-            }
-
-            float scale = std::min(
-                tileWidth / originalWidth,
-                tileHeight / originalHeight
-            );
-
+            float scale = std::min(tileWidth / originalWidth, tileHeight / originalHeight);
             float renderWidth = originalWidth * scale;
             float renderHeight = originalHeight * scale;
             float offsetX = (tileWidth - renderWidth) * 0.5f;
             float offsetY = (tileHeight - renderHeight) * 0.5f;
 
-            ImGui::SetCursorPos(
-                ImVec2(
-                    startPos.x + offsetX,
-                    startPos.y + offsetY
-                )
-            );
+            ImGui::SetCursorPos(ImVec2(startPos.x + offsetX, startPos.y + offsetY));
 
-            const ImTextureID textureId =
-                (ImTextureID)(intptr_t)projectStack[i].textureID;
+            const ImTextureID textureId = (ImTextureID)(intptr_t)projectStack[i].textureID;
 
             if (ImGui::ImageButton(
                     projectStack[i].name.c_str(),
@@ -139,98 +97,49 @@ void LeftPanel::render(
                     ImVec2(0, 1),
                     ImVec2(1, 0)
                 )) {
-                std::cout
-                    << "[UI] Proje secildi: "
-                    << projectStack[i].name
-                    << std::endl;
-
+                std::cout << "[UI] Proje secildi: " << projectStack[i].name << std::endl;
                 projectStack[i].isSelected = true;
             }
 
-            if (
-                ImGui::IsItemHovered()
-                && ImGui::IsMouseDoubleClicked(
-                    ImGuiMouseButton_Left
-                )
-            ) {
-                std::cout
-                    << "[UI] Projeye CIFT TIKLANDI: "
-                    << projectStack[i].name
-                    << std::endl;
-
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                std::cout << "[UI] Projeye CIFT TIKLANDI: " << projectStack[i].name << std::endl;
                 if (onProjectDoubleClicked) {
                     onProjectDoubleClicked(projectStack[i].id);
                 }
             }
         }
         else {
-            if (ImGui::Button(
-                    "Gorsel\nYok",
-                    ImVec2(tileWidth, tileHeight)
-                )) {
-                std::cout
-                    << "[UI] Proje secildi: "
-                    << projectStack[i].name
-                    << std::endl;
+            if (ImGui::Button("Gorsel\nYok", ImVec2(tileWidth, tileHeight))) {
+                std::cout << "[UI] Proje secildi: " << projectStack[i].name << std::endl;
             }
 
-            if (
-                ImGui::IsItemHovered()
-                && ImGui::IsMouseDoubleClicked(
-                    ImGuiMouseButton_Left
-                )
-            ) {
-                std::cout
-                    << "[UI] Projeye CIFT TIKLANDI: "
-                    << projectStack[i].name
-                    << std::endl;
-
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                std::cout << "[UI] Projeye CIFT TIKLANDI: " << projectStack[i].name << std::endl;
                 if (onProjectDoubleClicked) {
                     onProjectDoubleClicked(projectStack[i].id);
                 }
             }
         }
 
-        ImGui::SetCursorPos(
-            ImVec2(
-                startPos.x,
-                startPos.y + tileHeight + 5.0f
-            )
-        );
+        ImGui::SetCursorPos(ImVec2(startPos.x, startPos.y + tileHeight + 5.0f));
 
-        float textWidth =
-            ImGui::CalcTextSize(
-                projectStack[i].name.c_str()
-            ).x;
+        float textWidth = ImGui::CalcTextSize(projectStack[i].name.c_str()).x;
         float textIndent = (tileWidth - textWidth) * 0.5f;
 
         if (textIndent > 0.0f) {
-            ImGui::SetCursorPosX(
-                ImGui::GetCursorPosX() + textIndent
-            );
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + textIndent);
         }
 
-        ImGui::TextColored(
-            ImVec4(0.8f, 0.8f, 0.8f, 1.0f),
-            "%s",
-            projectStack[i].name.c_str()
-        );
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s", projectStack[i].name.c_str());
 
         ImGui::EndGroup();
 
         float lastGroupX2 = startPos.x + tileWidth;
-        float nextGroupX2 =
-            lastGroupX2
-            + style.ItemSpacing.x
-            + tileWidth;
+        float nextGroupX2 = lastGroupX2 + style.ItemSpacing.x + tileWidth;
 
-        if (
-            i + 1 < projectStack.size()
-            && nextGroupX2 < windowVisibleX2
-        ) {
+        if (i + 1 < projectStack.size() && nextGroupX2 < windowVisibleX2) {
             ImGui::SameLine();
-        }
-        else {
+        } else {
             ImGui::Dummy(ImVec2(0.0f, 20.0f));
         }
 
@@ -242,9 +151,7 @@ void LeftPanel::render(
     ImGui::PopStyleVar(2);
 }
 
-void LeftPanel::addProjectToStack(
-    Kivilcim::ProjectData newProject
-) {
+void LeftPanel::addProjectToStack(Kdata::ProjectData newProject) {
     if (newProject.id == 0) {
         newProject.id = projectCounter++;
     }
@@ -252,79 +159,44 @@ void LeftPanel::addProjectToStack(
         projectCounter = newProject.id + 1;
     }
 
-    if (
-        newProject.name == "İsimsiz-1"
-        || newProject.name.empty()
-    ) {
-        newProject.name =
-            "İsimsiz Proje "
-            + std::to_string(newProject.id);
+    if (newProject.name == "İsimsiz-1" || newProject.name.empty()) {
+        newProject.name = "İsimsiz Proje " + std::to_string(newProject.id);
     }
 
-    projectStack.insert(
-        projectStack.begin(),
-        newProject
-    );
-
-    std::cout
-        << "[Kivilcim UI] Proje eklendi: "
-        << newProject.name
-        << std::endl;
+    projectStack.insert(projectStack.begin(), newProject);
+    std::cout << "[Kivilcim UI] Proje eklendi: " << newProject.name << std::endl;
 }
 
 void LeftPanel::loadWorkspace() {
-    // Bu fonksiyon birden fazla kez cagrilacaksa projectStack temizlenmeden
-    // once mevcut OpenGL texture'lari serbest birakilmalidir.
     projectStack.clear();
 
-    std::vector<Kivilcim::ProjectData> savedProjects =
-        Kivilcim::KvlcmProjectParser::load(
-            kWorkspaceFilePath
-        );
+    // DİKKAT: Parser sınıfın eğer Kivilcim namespace içindeyse burayı o şekilde bırakıyoruz.
+    // Ancak Parser'ın döndürdüğü vektör Kdata::ProjectData tipinde olmalıdır!
+    std::vector<Kdata::ProjectData> savedProjects = Kivilcim::KvlcmProjectParser::load(kWorkspaceFilePath);
 
-    for (
-        auto it = savedProjects.rbegin();
-        it != savedProjects.rend();
-        ++it
-    ) {
-        Kivilcim::ProjectData& project = *it;
+    for (auto it = savedProjects.rbegin(); it != savedProjects.rend(); ++it) {
+        Kdata::ProjectData& project = *it;
 
         if (!project.imagePath.empty()) {
             int originalWidth = 0;
             int originalHeight = 0;
 
-            project.textureID =
-                TextureUtility::LoadThumbnailFromFile(
-                    project.imagePath,
-                    256,
-                    144,
-                    originalWidth,
-                    originalHeight
-                );
+            project.textureID = TextureUtility::LoadThumbnailFromFile(
+                project.imagePath, 256, 144, originalWidth, originalHeight
+            );
 
             if (project.textureID > 0) {
-                project.size = {
-                    originalWidth,
-                    originalHeight
-                };
+                project.size = { originalWidth, originalHeight };
             }
+        } else {
+            project.textureID = TextureUtility::CreateSolidColor(
+                project.bgColor[0], project.bgColor[1], project.bgColor[2]
+            );
         }
-        else {
-            project.textureID =
-                TextureUtility::CreateSolidColor(
-                    project.bgColor[0],
-                    project.bgColor[1],
-                    project.bgColor[2]
-                );
-        }
-
         addProjectToStack(project);
     }
 }
 
 void LeftPanel::saveWorkspace() {
-    Kivilcim::KvlcmProjectParser::save(
-        kWorkspaceFilePath,
-        projectStack
-    );
+    Kivilcim::KvlcmProjectParser::save(kWorkspaceFilePath, projectStack);
 }

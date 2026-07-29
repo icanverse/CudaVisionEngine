@@ -10,14 +10,14 @@ class LeftPanel {
 public:
     void render(float displayWidth, float displayHeight);
 
-    void addProjectToStack(Kivilcim::ProjectData newProject);
+    void addProjectToStack(Kdata::ProjectData newProject);
     void loadWorkspace();
     void saveWorkspace();
 
-    const std::vector<Kivilcim::ProjectData>& getProjectStack() const { return projectStack; }
+    const std::vector<Kdata::ProjectData>& getProjectStack() const { return projectStack; }
 
     // YENİ: İstenen ID'ye sahip projenin referansını döndüren yardımcı
-    Kivilcim::ProjectData* getProjectByID(int id) {
+    Kdata::ProjectData* getProjectByID(int id) {
         for (auto& p : projectStack) {
             if (p.id == id) return &p;
         }
@@ -30,7 +30,7 @@ public:
     }
 
 private:
-    std::vector<Kivilcim::ProjectData> projectStack;
+    std::vector<Kdata::ProjectData> projectStack;
     int projectCounter = 1;
 
     // YENİ: Sinyal değişkeni

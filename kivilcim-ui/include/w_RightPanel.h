@@ -16,12 +16,17 @@ public:
     void setOnImageImportedCallback(std::function<void(const std::string&)> callback) {
         onImageImported = callback;
     }
-    void setOnProjectCreatedCallback(std::function<void(const Kivilcim::ProjectData&)> callback) {
+
+    // YENİ VE DOĞRU TANIMLAMA (Inline olarak set ediliyor)
+    void setOnProjectCreatedCallback(std::function<void(const Kdata::ProjectData&)> callback) {
         onProjectCreated = callback;
     }
 
 private:
     std::function<void(const std::string&)> onImageImported;
+
+    // EKSİK OLAN DEĞİŞKEN BURAYA EKLENDİ
+    std::function<void(const Kdata::ProjectData&)> onProjectCreated;
 
     // --- UI DURUM (STATE) DEĞİŞKENLERİ ---
     char projectNameBuf[128];
@@ -42,8 +47,6 @@ private:
     std::string projectSavePath;  // Proje Kayıt Klasörü
 
     bool keepOriginalSize;
-
-    std::function<void(const Kivilcim::ProjectData&)> onProjectCreated;
 
     // --- ASENKRON YÜKLEME (THREAD) DEĞİŞKENLERİ ---
     std::atomic<bool> isProcessingImage{false};

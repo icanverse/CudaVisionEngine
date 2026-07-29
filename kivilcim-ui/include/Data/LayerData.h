@@ -12,7 +12,7 @@ namespace Kdata {
         bool isVisible = true;
         bool isLocked = false;
         float opacity = 1.0f;
-        unsigned int textureID = 0; // Katmanın VRAM'deki OpenGL doku karşılığı
+        unsigned int thumbnailTextureID = 0; // Katmanın VRAM'deki OpenGL doku karşılığı
         MaskData layerMask;
     };
 

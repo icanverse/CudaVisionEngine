@@ -1,19 +1,16 @@
 #include "Layers/QuickRightToolbox.h"
-
 #include "Layers/ToolboxIconButton.h"
 #include "imgui.h"
-
 #include <algorithm>
 
-QuickRightToolbox::QuickRightToolbox()
-    : currentTool(RightToolAction::NONE) {
-    availableTools = {
-        {RightToolAction::CONTRAST,    "Kontrast##QuickRight", Icon::Contrast,    "Kontrast ayarlarini acar"},
-        {RightToolAction::TEMPERATURE, "Sicaklik##QuickRight", Icon::Temperature, "Renk sicakligi ayarlarini acar"}
-    };
-}
+#include "Data/ToolRegistry.h"
 
-void QuickRightToolbox::render(float displayWidth, float displayHeight) {
+void QuickRightToolbox::render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight) {
+    if (!state) return; // Güvenlik kontrolü
+
+    // YENİ: Veriyi doğrudan Kayıt Defterinden çek
+    const auto& availableTools = UIRegistry::ToolRegistry::GetAdjustmentTools();
+
     const float iconSide = std::clamp(displayHeight / 32.0f, 22.0f, 34.0f);
     const float padding = 10.0f;
     const float rowHeight = iconSide + ImGui::GetStyle().FramePadding.y * 2.0f;
@@ -32,8 +29,11 @@ void QuickRightToolbox::render(float displayWidth, float displayHeight) {
 
     ImGui::BeginChild("Sag Arac Kutusu", ImVec2(panelWidth, panelHeight), true,
                       ToolboxUI::FloatingPanelFlags());
-    for (const Tool& tool : availableTools) {
-        const bool selected = currentTool == tool.id;
+
+    for (const auto& tool : availableTools) {
+        // YENİ: Seçili durumu doğrudan State'ten okuyoruz
+        const bool selected = (state->tools.activeAdjustment == tool.id);
+
         ImGui::PushStyleColor(ImGuiCol_Button, selected
             ? ImVec4(0.85f, 0.45f, 0.0f, 1.0f)
             : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -41,9 +41,15 @@ void QuickRightToolbox::render(float displayWidth, float displayHeight) {
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.65f, 0.35f, 0.0f, 1.0f));
 
         if (ToolboxUI::IconButton(tool.name.c_str(), tool.icon, ImVec2(iconSide, iconSide))) {
-            currentTool = tool.id;
+            if (state->tools.activeAdjustment == tool.id) {
+                state->tools.activeAdjustment = Kdata::AdjustmentTool::NONE;
+            } else {
+                state->tools.activeAdjustment = tool.id;
+                // Opsiyonel: Sağdaki ayarlara geçince sol araç çubuğunu temizle
+                state->tools.activeCanvasTool = Kdata::CanvasTool::NONE;
+            }
         }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tool.tooltip.c_str());
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tool.tooltip);
 
         ImGui::PopStyleColor(3);
         ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -53,5 +59,3 @@ void QuickRightToolbox::render(float displayWidth, float displayHeight) {
     ImGui::PopStyleVar(4);
     ImGui::PopStyleColor(2);
 }
-
-QuickRightToolbox::~QuickRightToolbox() = default;

@@ -1,27 +1,16 @@
 #include "Layers/QuickTopCenterToolbox.h"
-
 #include "Layers/ToolboxIconButton.h"
 #include "imgui.h"
-
 #include <algorithm>
 
-QuickTopCenterToolbox::QuickTopCenterToolbox()
-    : currentTool(CenterToolAction::NONE) {
-    availableTools = {
-        {CenterToolAction::CIRCLE,     "Daire##TopCenter",      Icon::Circle,     "Daire ekler"},
-        {CenterToolAction::LINE,       "Cizgi##TopCenter",      Icon::Line,       "Cizgi ekler"},
-        {CenterToolAction::SQUARE,     "Dikdortgen##TopCenter", Icon::Square,     "Dikdortgen ekler"},
-        {CenterToolAction::VECTOR,     "Vektor##TopCenter",     Icon::Vector,     "Vektor yolu ekler"},
-        {CenterToolAction::BRUSH,      "Firca##TopCenter",      Icon::Brush,      "Firca aracini secer"},
-        {CenterToolAction::ERASE,      "Silgi##TopCenter",      Icon::Erase,      "Silgi aracini secer"},
-        {CenterToolAction::COLOR,      "Renk##TopCenter",       Icon::Color,      "Cizim rengini secer"},
-        {CenterToolAction::TEXT,       "Metin##TopCenter",      Icon::Text,       "Metin ekler"},
-        {CenterToolAction::TEXT_SIZE,  "MetinBoyutu##TopCenter",Icon::Text_Size,  "Metin boyutunu ayarlar"},
-        {CenterToolAction::TEXT_COLOR, "MetinRengi##TopCenter", Icon::Text_Color, "Metin rengini ayarlar"}
-    };
-}
+#include "Data/ToolRegistry.h"
 
-void QuickTopCenterToolbox::render(float displayWidth, float displayHeight) {
+void QuickTopCenterToolbox::render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight) {
+    if (!state) return; // Güvenlik kontrolü
+
+    // YENİ: Veriyi doğrudan Kayıt Defterinden çekiyoruz
+    const auto& availableTools = UIRegistry::ToolRegistry::GetCenterTools();
+
     const float iconSide = std::clamp(displayHeight / 32.0f, 22.0f, 34.0f);
     const float padding = 8.0f;
     const float spacing = 4.0f;
@@ -43,8 +32,11 @@ void QuickTopCenterToolbox::render(float displayWidth, float displayHeight) {
                       ToolboxUI::FloatingPanelFlags());
 
     for (std::size_t i = 0; i < availableTools.size(); ++i) {
-        const Tool& tool = availableTools[i];
-        const bool selected = currentTool == tool.id;
+        const auto& tool = availableTools[i];
+
+        // YENİ: Seçili durumu doğrudan State'ten okuyoruz
+        const bool selected = (state->tools.activeCanvasTool == tool.id);
+
         ImGui::PushStyleColor(ImGuiCol_Button, selected
             ? ImVec4(0.85f, 0.45f, 0.0f, 1.0f)
             : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -52,8 +44,10 @@ void QuickTopCenterToolbox::render(float displayWidth, float displayHeight) {
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.65f, 0.35f, 0.0f, 1.0f));
 
         if (ToolboxUI::IconButton(tool.name.c_str(), tool.icon, ImVec2(iconSide, iconSide))) {
-            currentTool = tool.id;
+            state->tools.activeCanvasTool = tool.id;
+            state->tools.activeAdjustment = Kdata::AdjustmentTool::NONE; // Diğer ayar modlarını sıfırla
         }
+
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tool.tooltip.c_str());
 
         ImGui::PopStyleColor(3);
@@ -64,5 +58,3 @@ void QuickTopCenterToolbox::render(float displayWidth, float displayHeight) {
     ImGui::PopStyleVar(4);
     ImGui::PopStyleColor(2);
 }
-
-QuickTopCenterToolbox::~QuickTopCenterToolbox() = default;

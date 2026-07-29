@@ -1,37 +1,14 @@
 #include "Layers/QuickLeftToolbox.h"
-
 #include "Layers/ToolboxIconButton.h"
 #include "imgui.h"
+#include "Data/ToolRegistry.h"
 
-QuickLeftToolbox::QuickLeftToolbox()
-    : currentTool(ActiveTool::NONE) {
-    availableTools.push_back({
-        ActiveTool::MOVE, "Kaydir", "Tuvali Kaydir (El Araci)",
-        Icon::Move, "Calisma alaninda gezinmeyi saglar"
-    });
-    availableTools.push_back({
-        ActiveTool::SELECT_REGION_RECTANGLE, "Kare Secim", "Dikdortgen Secim Araci (ROI)",
-        Icon::Select_Region_Rectangle, "Dikdortgen seklinde alan secer"
-    });
-    availableTools.push_back({
-        ActiveTool::SELECT_REGION_FREE, "Serbest Secim", "Serbest Alan Secimi (Lasso)",
-        Icon::Select_Region_Free, "Tuvalde serbest sekilde alan secer"
-    });
-    availableTools.push_back({
-        ActiveTool::BRUSH, "Firca", "Serbest Boyama Araci",
-        Icon::Brush, "Pikselleri serbestce boyar"
-    });
-    availableTools.push_back({
-        ActiveTool::COLOR, "Renk", "Renk Secici",
-        Icon::Color, "Firca ve metin rengini belirler"
-    });
-    availableTools.push_back({
-        ActiveTool::TEXT, "Metin", "Metin Araci",
-        Icon::Text, "Tuvale yazi katmani ekler"
-    });
-}
+void QuickLeftToolbox::render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight) {
+    if (!state) return; // Güvenlik kontrolü
 
-void QuickLeftToolbox::render(float displayWidth, float displayHeight) {
+    // YENİ: Araç listesini Registry'den (Kayıt Defterinden) tek satırda çekiyoruz
+    const auto& availableTools = UIRegistry::ToolRegistry::GetCanvasTools();
+
     const float toolbarWidth = 50.0f;
     const float toolbarHeight = 20.0f + 75.0f * static_cast<float>(availableTools.size());
     const float xPos = 15.0f;
@@ -49,7 +26,9 @@ void QuickLeftToolbox::render(float displayWidth, float displayHeight) {
                       ToolboxUI::FloatingPanelFlags());
 
     for (const auto& tool : availableTools) {
-        const bool selected = currentTool == tool.id;
+        // Seçili durumu doğrudan merkez State'ten okuyoruz
+        const bool selected = (state->tools.activeCanvasTool == tool.id);
+
         ImGui::PushStyleColor(ImGuiCol_Button, selected
             ? ImVec4(0.85f, 0.45f, 0.0f, 1.0f)
             : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -66,7 +45,11 @@ void QuickLeftToolbox::render(float displayWidth, float displayHeight) {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
 
         if (ToolboxUI::IconButton(tool.name.c_str(), tool.icon, iconSize)) {
-            currentTool = tool.id;
+            // Kullanıcı bir butona bastığında doğrudan merkez State verisini güncelle
+            state->tools.activeCanvasTool = tool.id;
+
+            // Eğer yeni bir araç seçildiyse, diğer paneldeki (örneğin renk, pozlama) ayar editörlerini kapat
+            state->tools.activeAdjustment = Kdata::AdjustmentTool::NONE;
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tool.tooltip.c_str());
 
@@ -78,5 +61,3 @@ void QuickLeftToolbox::render(float displayWidth, float displayHeight) {
     ImGui::PopStyleVar(4);
     ImGui::PopStyleColor(2);
 }
-
-QuickLeftToolbox::~QuickLeftToolbox() = default;

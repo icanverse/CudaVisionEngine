@@ -1,14 +1,15 @@
 #include "CanvasPanel.h"
-#include "Data/ProjectData.h"
-#include "TextureUtility/CudaDynamicTexture.cuh"
+#include "Data/WorkspaceStateData.h" // Kdata namespace'i ve struct'ları için
 
 #include <cstdint>
-#include <cmath> // Izgara kaydırma (fmodf) matematiği için eklendi
+#include <cmath>
 
 CanvasPanel::CanvasPanel() = default;
 CanvasPanel::~CanvasPanel() = default;
 
 void CanvasPanel::render(
+    Kdata::WorkspaceStateData* state,
+    unsigned int compositeTextureId,
     float displayWidth,
     float displayHeight,
     float leftInset,
@@ -16,6 +17,8 @@ void CanvasPanel::render(
     float topInset,
     float bottomInset
 ) {
+    if (!state) return; // Güvenlik kontrolü
+
     const float requestedWidth = displayWidth - leftInset - rightInset;
     const float requestedHeight = displayHeight - topInset - bottomInset;
     const float panelWidth = requestedWidth > 240.0f ? requestedWidth : 240.0f;
@@ -37,9 +40,13 @@ void CanvasPanel::render(
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
     );
 
-    ImGui::TextColored(ImVec4(0.90f, 0.50f, 0.15f, 1.0f), "%s", title.c_str());
+    // Başlığı doğrudan state üzerinden okuyoruz
+    std::string displayTitle = state->project.name.empty() ? "İsimsiz Proje" : state->project.name;
+
+    ImGui::TextColored(ImVec4(0.90f, 0.50f, 0.15f, 1.0f), "%s", displayTitle.c_str());
     ImGui::SameLine();
-    ImGui::TextDisabled("  %.0f%%", zoom * 100.0f);
+    // Zoom bilgisini Viewport'tan okuyoruz
+    ImGui::TextDisabled("  %.0f%%", state->viewport.zoomLevel * 100.0f);
     ImGui::SameLine();
     ImGui::TextDisabled("  |  Orta tus: kaydir  |  Tekerlek: zoom  |  Cift tik: sifirla");
 
@@ -63,38 +70,45 @@ void CanvasPanel::render(
     if (hovered) {
         ImGuiIO& io = ImGui::GetIO();
 
+        // Etkileşimler doğrudan state->viewport verilerini günceller
         if (io.MouseWheel != 0.0f) {
-            zoom *= io.MouseWheel > 0.0f ? 1.10f : 0.90f;
-            if (zoom < 0.10f) zoom = 0.10f;
-            if (zoom > 16.0f) zoom = 16.0f;
+            state->viewport.zoomLevel *= io.MouseWheel > 0.0f ? 1.10f : 0.90f;
+            if (state->viewport.zoomLevel < 0.10f) state->viewport.zoomLevel = 0.10f;
+            if (state->viewport.zoomLevel > 16.0f) state->viewport.zoomLevel = 16.0f;
         }
 
         if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f)) {
-            pan.x += io.MouseDelta.x;
-            pan.y += io.MouseDelta.y;
+            state->viewport.cameraPosX += io.MouseDelta.x;
+            state->viewport.cameraPosY += io.MouseDelta.y;
         }
 
-        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) resetView();
+        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+            state->viewport.zoomLevel = 1.0f;
+            state->viewport.cameraPosX = 0.0f;
+            state->viewport.cameraPosY = 0.0f;
+        }
     }
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->PushClipRect(canvasMin, canvasMax, true);
 
-    // Arkadaki deseni çizen fonksiyon çağrısı
-    drawCheckerboard(drawList, canvasMin, canvasMax);
+    // Arkadaki deseni çizen fonksiyon çağrısı (Pan verilerini state'den geçiriyoruz)
+    drawCheckerboard(drawList, canvasMin, canvasMax, state->viewport.cameraPosX, state->viewport.cameraPosY);
 
-    if (textureId != 0 && imageWidth > 0 && imageHeight > 0) {
-        const float fitX = canvasSize.x / static_cast<float>(imageWidth);
-        const float fitY = canvasSize.y / static_cast<float>(imageHeight);
+    // Eğer projenin bir genişliği/yüksekliği varsa ve motor bize bir doku (texture) verdiyse çiz
+    if (compositeTextureId != 0 && state->project.projectWidth > 0 && state->project.projectHeight > 0) {
+        const float fitX = canvasSize.x / static_cast<float>(state->project.projectWidth);
+        const float fitY = canvasSize.y / static_cast<float>(state->project.projectHeight);
         const float fitScale = fitX < fitY ? fitX : fitY;
-        const float finalScale = fitScale * 0.92f * zoom;
+        const float finalScale = fitScale * 0.92f * state->viewport.zoomLevel;
+
         const ImVec2 imageSize(
-            static_cast<float>(imageWidth) * finalScale,
-            static_cast<float>(imageHeight) * finalScale
+            static_cast<float>(state->project.projectWidth) * finalScale,
+            static_cast<float>(state->project.projectHeight) * finalScale
         );
         const ImVec2 imageMin(
-            canvasMin.x + (canvasSize.x - imageSize.x) * 0.5f + pan.x,
-            canvasMin.y + (canvasSize.y - imageSize.y) * 0.5f + pan.y
+            canvasMin.x + (canvasSize.x - imageSize.x) * 0.5f + state->viewport.cameraPosX,
+            canvasMin.y + (canvasSize.y - imageSize.y) * 0.5f + state->viewport.cameraPosY
         );
         const ImVec2 imageMax(
             imageMin.x + imageSize.x,
@@ -102,7 +116,7 @@ void CanvasPanel::render(
         );
 
         drawList->AddImage(
-            (ImTextureID)(intptr_t)textureId,
+            (ImTextureID)(intptr_t)compositeTextureId,
             imageMin,
             imageMax,
             ImVec2(0.0f, 1.0f),
@@ -110,7 +124,7 @@ void CanvasPanel::render(
         );
 
     } else {
-        const char* emptyText = "Gorsel texture'i henuz CanvasPanel'e baglanmadi";
+        const char* emptyText = "Tuval Bos Veya Gorsel Yuklenmedi";
         const ImVec2 textSize = ImGui::CalcTextSize(emptyText);
         drawList->AddText(
             ImVec2(
@@ -129,113 +143,23 @@ void CanvasPanel::render(
     ImGui::PopStyleColor(2);
 }
 
-void CanvasPanel::setImage(
-    unsigned int newTextureId,
-    int newImageWidth,
-    int newImageHeight,
-    const std::string& imageName
-) {
-    const bool imageChanged =
-        textureId != newTextureId ||
-        imageWidth != newImageWidth ||
-        imageHeight != newImageHeight;
-
-    textureId = newTextureId;
-    imageWidth = newImageWidth;
-    imageHeight = newImageHeight;
-    if (!imageName.empty()) title = imageName;
-    if (imageChanged) resetView();
-}
-
-void CanvasPanel::setProject(const Kivilcim::ProjectData* project) {
-    if (project == nullptr) {
-        clearImage();
-        return;
-    }
-
-    const int sourceWidth = project->size.x > 0
-        ? project->size.x
-        : project->projectWidth;
-    const int sourceHeight = project->size.y > 0
-        ? project->size.y
-        : project->projectHeight;
-
-    if (
-        project->isLoadedToGPU &&
-        project->d_imageData != nullptr &&
-        sourceWidth > 0 &&
-        sourceHeight > 0 &&
-        (project->channels == 1 || project->channels == 3 || project->channels == 4)
-    ) {
-        const bool textureMustBeCreated =
-            dynamicTexture == nullptr ||
-            dynamicTexture->getWidth() != sourceWidth ||
-            dynamicTexture->getHeight() != sourceHeight;
-
-        if (textureMustBeCreated) {
-            dynamicTexture = std::make_unique<CudaDynamicTexture>(
-                sourceWidth,
-                sourceHeight
-            );
-        }
-
-        if (dynamicTexture->updateFromDeviceData(
-                project->d_imageData,
-                project->channels,
-                1.0f / 255.0f
-            )) {
-            setImage(
-                dynamicTexture->getTextureID(),
-                sourceWidth,
-                sourceHeight,
-                project->name
-            );
-            return;
-        }
-    }
-
-    dynamicTexture.reset();
-    setImage(
-        project->textureID,
-        sourceWidth,
-        sourceHeight,
-        project->name
-    );
-}
-
-void CanvasPanel::clearImage() {
-    dynamicTexture.reset();
-    textureId = 0;
-    imageWidth = 0;
-    imageHeight = 0;
-    resetView();
-}
-
-void CanvasPanel::resetView() {
-    zoom = 1.0f;
-    pan = ImVec2(0.0f, 0.0f);
-}
-
-// İsim hata vermesin diye drawCheckerboard kaldı ancak modern bir grid (ızgara) çiziyor
 void CanvasPanel::drawCheckerboard(
     ImDrawList* drawList,
     const ImVec2& min,
-    const ImVec2& max
+    const ImVec2& max,
+    float panX,
+    float panY
 ) const {
-    // 1. Zemin rengi: Tamamen koyu, dikkat dağıtmayan mat antrasit
     drawList->AddRectFilled(min, max, IM_COL32(16, 16, 18, 255));
 
-    // 2. Modern ızgara çizgileri (Blueprint/Node editor stili)
     constexpr float gridSize = 32.0f;
-    const ImU32 gridColor = IM_COL32(32, 32, 36, 255); // Çok hafif belli olan ince referans çizgileri
+    const ImU32 gridColor = IM_COL32(32, 32, 36, 255);
 
-    // Kamerayı kaydırdığında (pan) ızgaranın da senkronize hareket etmesini sağlayan matematik
-    float offsetX = std::fmod(pan.x, gridSize);
-    float offsetY = std::fmod(pan.y, gridSize);
+    float offsetX = std::fmod(panX, gridSize);
+    float offsetY = std::fmod(panY, gridSize);
     if (offsetX < 0) offsetX += gridSize;
     if (offsetY < 0) offsetY += gridSize;
 
-    // Yatay ve dikey çizgileri çizerek sonsuz bir doku oluştur
     for (float x = min.x + offsetX; x < max.x; x += gridSize) {
         drawList->AddLine(ImVec2(x, min.y), ImVec2(x, max.y), gridColor, 1.0f);
     }

@@ -1,40 +1,12 @@
 #pragma once
 
-#include "AssetsManager/IconManager.h"
-
-#include <string>
-#include <vector>
-
-enum class CenterToolAction {
-    NONE,
-    CIRCLE,
-    LINE,
-    SQUARE,
-    VECTOR,
-    BRUSH,
-    ERASE,
-    COLOR,
-    TEXT,
-    TEXT_SIZE,
-    TEXT_COLOR
-};
+#include "Data/WorkspaceStateData.h"
 
 class QuickTopCenterToolbox {
 public:
-    QuickTopCenterToolbox();
-    ~QuickTopCenterToolbox();
+    QuickTopCenterToolbox() = default;
+    ~QuickTopCenterToolbox() = default;
 
-    void render(float displayWidth, float displayHeight);
-    CenterToolAction getCurrentTool() const { return currentTool; }
-
-private:
-    struct Tool {
-        CenterToolAction id;
-        std::string name;
-        Icon icon;
-        std::string tooltip;
-    };
-
-    CenterToolAction currentTool;
-    std::vector<Tool> availableTools;
+    // YENİ: Sadece state referansı alarak çalışır
+    void render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight);
 };

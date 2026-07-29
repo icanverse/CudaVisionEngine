@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Data/WorkspaceStateData.h" // YENİ: State merkezimiz
+
 #include "CanvasPanel.h"
 #include "Layers/QuickLayersToolbox.h"
 #include "Layers/QuickRightToolbox.h"
@@ -7,7 +9,8 @@
 
 class WorkspaceToolboxes {
 public:
-    void render(float displayWidth, float displayHeight);
+    // YENİ: Artık state objesini alıp alt panellere dağıtacak
+    void render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight);
 
     CanvasPanel& canvas() { return canvasPanel; }
     QuickTopCenterToolbox& topCenter() { return topCenterToolbox; }

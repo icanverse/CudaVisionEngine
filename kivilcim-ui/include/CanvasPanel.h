@@ -2,13 +2,8 @@
 
 #include "imgui.h"
 
-#include <memory>
-#include <string>
-
-class CudaDynamicTexture;
-
-namespace Kivilcim {
-    struct ProjectData;
+namespace Kdata {
+    struct WorkspaceStateData;
 }
 
 class CanvasPanel {
@@ -21,7 +16,10 @@ public:
     CanvasPanel(CanvasPanel&&) = delete;
     CanvasPanel& operator=(CanvasPanel&&) = delete;
 
+    // Render artık doğrudan "State" (Veri) ve motorun birleştirdiği nihai dokuyu alıyor
     void render(
+        Kdata::WorkspaceStateData* state,
+        unsigned int compositeTextureId, // Motorun katmanları birleştirip ürettiği son doku
         float displayWidth,
         float displayHeight,
         float leftInset,
@@ -30,35 +28,12 @@ public:
         float bottomInset
     );
 
-    void setImage(
-        unsigned int textureId,
-        int imageWidth,
-        int imageHeight,
-        const std::string& imageName = {}
-    );
-
-    void setProject(const Kivilcim::ProjectData* project);
-    void clearImage();
-    void resetView();
-
-    void setTitle(const std::string& newTitle) { title = newTitle; }
-    float getZoom() const { return zoom; }
-    unsigned int getDisplayTextureId() const { return textureId; }
-
 private:
     void drawCheckerboard(
         ImDrawList* drawList,
         const ImVec2& min,
-        const ImVec2& max
+        const ImVec2& max,
+        float panX,
+        float panY
     ) const;
-
-    unsigned int textureId = 0;
-    int imageWidth = 0;
-    int imageHeight = 0;
-    std::string title = "Calisma Tuvali";
-
-    float zoom = 1.0f;
-    ImVec2 pan = ImVec2(0.0f, 0.0f);
-
-    std::unique_ptr<CudaDynamicTexture> dynamicTexture;
 };
