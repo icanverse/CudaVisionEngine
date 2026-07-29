@@ -2,8 +2,6 @@
 #include <vector>
 #include <string>
 
-using namespace std;
-
 namespace Kdata {
 
     enum class UITheme { DARK };
@@ -14,10 +12,10 @@ namespace Kdata {
 
         // Kullanıcı Kaydı
         short userID = 0;
-        string userName = "Admin";
+        std::string userName = "Admin";
 
         UITheme theme = UITheme::DARK;
-        string language = "tr_TR";
+        std::string language = "tr_TR";
 
         // Donanım Ayarları
         bool enableHardwareAcceleration = true; // CUDA ivmelendirmesi aktif/pasif
@@ -31,9 +29,9 @@ namespace Kdata {
         short vram_limit = 6;
 
         // Yollar
-        vector<string> recentProjectsPaths;
-        string cache_path = "";
-        string default_export_path = "";
+        std::vector<std::string> recentProjectsPaths;
+        std::string cache_path = "";
+        std::string default_export_path = "";
 
 
         // Motor içi konfigürasyonlar

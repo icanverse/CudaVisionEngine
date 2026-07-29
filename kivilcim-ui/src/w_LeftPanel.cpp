@@ -11,8 +11,9 @@
 #include "Persistence/KvlcmSerializer.h"
 #include "TextureUtility/TextureUtility.h"
 
+// DÜZELTME: Uzantı Serializer'ın beklediği ".kvlcm-project-library" ile değiştirildi.
 static const std::string kWorkspaceFilePath =
-    "C:/Users/Can/Desktop/sirca_workspace.kvlcm_proj";
+    "C:/Users/Can/Desktop/sirca_workspace.kvlcm-project-library";
 
 void LeftPanel::render(
     float displayWidth,
@@ -55,7 +56,7 @@ void LeftPanel::render(
     ImGui::Begin("Hadi Baslayalim!", nullptr, leftPanelFlags);
 
     ImGui::SetWindowFontScale(1.8f);
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Hadi Baslayalim!");
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Kütüphane");
     ImGui::SetWindowFontScale(1.0f);
     ImGui::Separator();
     ImGui::Dummy(ImVec2(0.0f, 15.0f));
@@ -170,9 +171,8 @@ void LeftPanel::addProjectToStack(Kdata::ProjectData newProject) {
 void LeftPanel::loadWorkspace() {
     projectStack.clear();
 
-    // DİKKAT: Parser sınıfın eğer Kivilcim namespace içindeyse burayı o şekilde bırakıyoruz.
-    // Ancak Parser'ın döndürdüğü vektör Kdata::ProjectData tipinde olmalıdır!
-    std::vector<Kdata::ProjectData> savedProjects = Kivilcim::KvlcmSerializer::load(kWorkspaceFilePath);
+    // DÜZELTME: Sadece 'load' yerine yeni mimarideki 'loadLibrary' fonksiyonunu çağırıyoruz.
+    std::vector<Kdata::ProjectData> savedProjects = Kivilcim::KvlcmSerializer::loadLibrary(kWorkspaceFilePath);
 
     for (auto it = savedProjects.rbegin(); it != savedProjects.rend(); ++it) {
         Kdata::ProjectData& project = *it;
@@ -198,5 +198,5 @@ void LeftPanel::loadWorkspace() {
 }
 
 void LeftPanel::saveWorkspace() {
-    Kivilcim::KvlcmSerializer::save(kWorkspaceFilePath, projectStack);
+    Kivilcim::KvlcmSerializer::saveLibrary(".kvlcm-project-library", kWorkspaceFilePath, projectStack);
 }

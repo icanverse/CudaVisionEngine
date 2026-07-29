@@ -11,48 +11,47 @@
 #include "Data/PreferenceData.h"
 #include "Data/ProjectData.h"
 
-using namespace std;
-
 namespace Kivilcim {
     class KvlcmSerializer {
     private:
+        // Yardımcı fonksiyon: String sonundaki \r ve boşlukları temizler
         static void trimLine(std::string& line) {
             while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t')) {
                 line.pop_back();
             }
         }
 
-        static ifstream readFile(const std::string& filepath) {
-            return ifstream(filepath);
+        static std::ifstream readFile(const std::string& filepath) {
+            return std::ifstream(filepath);
         }
 
-        static ofstream writeFile(const std::string& filepath) {
-            ofstream file(filepath);
-            if (!file.is_open()) cout << "Kütüphane Dosyası Açılamadı\n";
+        static std::ofstream writeFile(const std::string& filepath) {
+            std::ofstream file(filepath);
+            if (!file.is_open()) std::cout << "Kütüphane Dosyası Açılamadı\n";
             return file;
         }
 
-        static bool checkFileExtension(const string& expectedExtension, const std::string& filepath) {
-            if (filesystem::path(filepath).extension() == expectedExtension) return true;
-            cout << "[UNEXPECTED FILE EXTENSION] Dosya beklenen uzantıda değil\n";
+        static bool checkFileExtension(const std::string& expectedExtension, const std::string& filepath) {
+            if (std::filesystem::path(filepath).extension() == expectedExtension) return true;
+            std::cout << "[UNEXPECTED FILE EXTENSION] Dosya beklenen uzantıda değil\n";
             return false;
         }
 
     public:
 
         // ==========================================
-        // PREFERENCES YÖNETİMİ
+        // 1. PREFERENCES (AYARLAR) YÖNETİMİ
         // ==========================================
-        static void savePreferences(const string& expectedExtension, const std::string& filepath, const std::vector<Kdata::PreferenceData>& users) {
+        static void savePreferences(const std::string& expectedExtension, const std::string& filepath, const std::vector<Kdata::PreferenceData>& users) {
             if (!checkFileExtension(expectedExtension, filepath)) return;
 
-            ofstream file = writeFile(filepath);
+            std::ofstream file = writeFile(filepath);
             file << "### .kvlcm-user-pref ###\n## ~bu dosyayı manuel düzenlemeyiniz ##\n\n";
 
             for (const auto& user : users) {
-                if (user.isPreferencesChanged) { // Eşitlik kontrolü düzeltildi
+                if (user.isPreferencesChanged) {
                     file << "PREFERENCES_BEGIN\n";
-                    file << "$" << user.userName << "ıd" << user.userID << endl;
+                    file << "$" << user.userName << "ıd" << user.userID << std::endl;
                     file << "H_ACC \n" << user.enableHardwareAcceleration << "\n";
                     file << "SH_MEM :\n"
                          << "sh_m " << user.enableSharedMemory << "\n"
@@ -63,9 +62,9 @@ namespace Kivilcim {
         }
 
         // ==========================================
-        // >>> KÜTÜPHANE YÖNETİMİ
+        // 2. LİBRARY (KÜTÜPHANE) YÖNETİMİ
         // ==========================================
-        static void saveLibrary(const string& expectedExtension, const std::string& filepath, const std::vector<Kdata::ProjectData>& projects) {
+        static void saveLibrary(const std::string& expectedExtension, const std::string& filepath, const std::vector<Kdata::ProjectData>& projects) {
             if (!checkFileExtension(expectedExtension, filepath)) return;
             std::ofstream file = writeFile(filepath);
 
@@ -100,6 +99,7 @@ namespace Kivilcim {
             std::cout << "[KvlcmProjectParser] " << projects.size() << " proje library diske kaydedildi.\n";
         }
 
+        // KÜTÜPHANEYİ OKUMA FONKSİYONU
         static std::vector<Kdata::ProjectData> loadLibrary(const std::string& filepath) {
             std::vector<Kdata::ProjectData> loadedProjects;
             std::ifstream file = readFile(filepath);
@@ -107,7 +107,7 @@ namespace Kivilcim {
 
             std::string line;
             bool inProject = false;
-            Kdata::ProjectData temp(0, "", ""); // Geçiçi proje nesnesi
+            Kdata::ProjectData temp(0, "", "");
 
             while (std::getline(file, line)) {
                 trimLine(line);
@@ -153,9 +153,9 @@ namespace Kivilcim {
         }
 
         static void findProjectEnd(int projectId, int2& index, const std::string& filepath) {
-            ifstream file = readFile(filepath);
-            string line;
-            string targetIdStr = "ID: " + std::to_string(projectId);
+            std::ifstream file = readFile(filepath);
+            std::string line;
+            std::string targetIdStr = "ID: " + std::to_string(projectId);
             bool insideTargetProject = false;
             std::streampos lastBeginPos = 0;
 
@@ -186,17 +186,17 @@ namespace Kivilcim {
 
             if (index.x == -1 || index.y == -1) return false;
 
-            ifstream inFile = readFile(filepath);
-            string tempFilepath = filepath + ".tmp";
-            ofstream outFile = writeFile(tempFilepath);
+            std::ifstream inFile = readFile(filepath);
+            std::string tempFilepath = filepath + ".tmp";
+            std::ofstream outFile = writeFile(tempFilepath);
 
             if (!outFile.is_open()) return false;
 
-            string line;
+            std::string line;
             while (true) {
                 std::streampos lineStartPos = inFile.tellg();
                 if (!std::getline(inFile, line)) break;
-                streampos lineEndPos = inFile.tellg();
+                std::streampos lineEndPos = inFile.tellg();
 
                 bool isInsideTargetRange = (lineStartPos >= index.x && lineEndPos <= index.y);
                 if (!isInsideTargetRange) outFile << line << "\n";
@@ -212,11 +212,10 @@ namespace Kivilcim {
         }
 
         // ==========================================
-        // PROJECT SNAPSHOT
+        // 3. PROJECT SNAPSHOT (BİNARY CHUNK MİMARİSİ)
         // ==========================================
         static bool saveProjectData(const std::string& filepath, const Kdata::ProjectData& project, const Kdata::LayerData& layerData) {
-            // DOSYAYI BİNARY AÇIYORUZ
-            ofstream file(filepath, std::ios::binary | std::ios::out);
+            std::ofstream file(filepath, std::ios::binary | std::ios::out);
             if (!file.is_open()) return false;
 
             const char magic[8] = {'K','V','L','C','M','_','V','1'};
@@ -270,14 +269,13 @@ namespace Kivilcim {
             return true;
         }
 
-        // BİNARY VE CHUNK DESTEKLİ PROJE OKUMA FONKSİYONU
         static bool loadProject(const std::string& filepath, Kdata::ProjectData& outProject, Kdata::LayerData& outLayerData) {
             std::ifstream file(filepath, std::ios::binary | std::ios::in);
             if (!file.is_open()) return false;
 
             char magic[8];
             file.read(magic, 8);
-            if (std::string(magic, 8) != "KVLCM_V1") return false; // Hatalı dosya
+            if (std::string(magic, 8) != "KVLCM_V1") return false;
 
             uint32_t metaSize = 0;
             file.read(reinterpret_cast<char*>(&metaSize), sizeof(uint32_t));
@@ -292,7 +290,6 @@ namespace Kivilcim {
             Kdata::Layer tempLayer;
             outLayerData.layers.clear();
 
-            // METADATA AYRIŞTIRMA (STRINGSTREAM)
             while (std::getline(metaParser, line)) {
                 trimLine(line);
                 if(line.empty()) continue;
@@ -302,7 +299,7 @@ namespace Kivilcim {
 
                 else if (line == "LAYER_BEGIN") {
                     inLayer = true;
-                    tempLayer = Kdata::Layer(); // Yenile
+                    tempLayer = Kdata::Layer();
                 }
                 else if (line == "LAYER_END" && inLayer) {
                     outLayerData.layers.push_back(tempLayer);
@@ -317,18 +314,15 @@ namespace Kivilcim {
                         std::istringstream boundsStream(line.substr(13));
                         boundsStream >> tempLayer.layerMask.boundsWidth >> tempLayer.layerMask.boundsHeight;
                     }
-                    // Not: L_TRANSFORM vs eklenebilir, parse mantığı aynıdır.
                 }
             }
 
-            // METİN BİTTİ. ŞİMDİ SIRADA BİNARY PİKSEL VERİLERİ (CHUNKS) VAR
             for (auto& layer : outLayerData.layers) {
                 if (layer.layerMask.isActive) {
                     uint32_t pixelDataSize = 0;
                     file.read(reinterpret_cast<char*>(&pixelDataSize), sizeof(uint32_t));
 
                     if (pixelDataSize > 0) {
-                        // RAM'de yer ayır (Motor tarafında bu VRAM'e veya CUDA'ya yüklenecek)
                         layer.layerMask.d_maskData = new unsigned char[pixelDataSize];
                         file.read(reinterpret_cast<char*>(layer.layerMask.d_maskData), pixelDataSize);
                     }
