@@ -96,6 +96,7 @@ void Workspace::render(Kdata::WorkspaceStateData* state, float displayWidth, flo
         const float editorHeight = ImGui::GetWindowSize().y;
 
         // YENİ: Alt panellerin TAMAMI artık ilk parametre olarak 'state' alıyor.
+        quickInspectorToolbox.render(state, editorWidth, editorHeight);
         quickToolbar.render(state, editorWidth, editorHeight);
         topToolbox.render(state, editorWidth, editorHeight);
         additionalToolboxes.render(state, editorWidth, editorHeight);

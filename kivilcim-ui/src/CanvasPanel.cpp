@@ -12,19 +12,43 @@ void CanvasPanel::render(
     unsigned int compositeTextureId,
     float displayWidth,
     float displayHeight,
-    float leftInset,
-    float rightInset,
+    float leftInset, // Bu parametreler dışarıdan (Workspace.cpp) gelse de,
+    float rightInset, // içeride bunları ezeceğiz ki tam otursun.
     float topInset,
     float bottomInset
 ) {
-    if (!state) return; // Güvenlik kontrolü
+    if (!state) return;
 
-    const float requestedWidth = displayWidth - leftInset - rightInset;
-    const float requestedHeight = displayHeight - topInset - bottomInset;
+    // ==========================================
+    // 1. KUSURSUZ HİZALAMA VE INSET DEĞERLERİ
+    // ==========================================
+    // WorkspaceTopPanel'in tam yüksekliği kWorkspacePanelHeight=48.0f'dir.
+    // Canvas'ı tam olarak onun bittiği çizgiye yapıştırmak için topInset'i 48.0f olarak sabitliyoruz.
+    const float actualTopInset = 48.0f;
+
+    // Sağdaki panellerin toplamı 400px genişlikte. Sağ kenardan (window padding) 25px boşluk var.
+    // Canvas'ın onlara bindirme yapmaması için 400 + 25 + 10(ara boşluk) = 435px boşluk bırakıyoruz.
+    const float actualRightInset = 435.0f;
+
+    // Soldaki Toolbar genelde 60-70px civarındadır.
+    const float actualLeftInset = 65.0f;
+
+    // Ekranın altı için çok ufak bir boşluk yeterli.
+    const float actualBottomInset = 15.0f;
+
+
+    // ==========================================
+    // 2. PANEL BOYUTU HESAPLAMA
+    // ==========================================
+    const float requestedWidth = displayWidth - actualLeftInset - actualRightInset;
+    const float requestedHeight = displayHeight - actualTopInset - actualBottomInset;
+
+    // Minimum boyut korumaları (Çok küçük ekranlarda çökmemesi için)
     const float panelWidth = requestedWidth > 240.0f ? requestedWidth : 240.0f;
     const float panelHeight = requestedHeight > 180.0f ? requestedHeight : 180.0f;
 
-    ImGui::SetCursorPos(ImVec2(leftInset, topInset));
+    // İŞTE BURASI ÇOK KRİTİK: Canvas'ı tam olarak sol boşluk ve üst panel çizgisinden başlatıyoruz
+    ImGui::SetCursorPos(ImVec2(actualLeftInset, actualTopInset));
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.08f, 0.09f, 0.98f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.15f, 0.15f, 0.16f, 1.0f));

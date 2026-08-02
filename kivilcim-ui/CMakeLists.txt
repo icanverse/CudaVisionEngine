@@ -28,6 +28,8 @@ set(IMGUI_SOURCES
         include/Data/ToolRegistry.h
         src/PreferencesPanel.cpp
         include/PreferencesPanel.h
+        src/Layers/QuickInspectorToolbox.cpp
+        include/Layers/QuickInspectorToolbox.h
 )
 
 file(GLOB_RECURSE UI_SOURCES CONFIGURE_DEPENDS

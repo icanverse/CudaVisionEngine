@@ -23,7 +23,7 @@ void QuickLayersToolbox::render(Kdata::WorkspaceStateData* state, float displayW
     if (!state) return;
 
     const float panelWidth = getPanelWidth();
-    const float panelTop = getPanelTop();
+    const float panelTop = getPanelTop() + 270.0f;
     const float requestedHeight = displayHeight - panelTop - 15.0f;
     const float panelHeight = requestedHeight > 220.0f ? requestedHeight : 220.0f;
     const float iconSide = std::clamp(displayHeight / 34.0f, 24.0f, 31.0f);

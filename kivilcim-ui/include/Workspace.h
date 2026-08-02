@@ -6,6 +6,7 @@
 #include "Layers/QuickTopRightToolbox.h"
 #include "Layers/WorkspaceToolboxes.h"
 #include "WorkspaceTopPanel.h"
+#include "Layers/QuickInspectorToolbox.h"
 #include "tools/IsoDepthEditor.h"
 
 class Workspace {
@@ -27,6 +28,7 @@ private:
     QuickTopRightToolbox topToolbox;
     WorkspaceToolboxes additionalToolboxes;
     WorkspaceTopPanel workspaceTopPanel;
+    QuickInspectorToolbox quickInspectorToolbox;
 
     // --- Araçlar ---
     Kivilcim::Tools::IsoDepthEditor isoEditor;

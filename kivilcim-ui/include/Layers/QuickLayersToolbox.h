@@ -15,7 +15,7 @@ public:
     void render(Kdata::WorkspaceStateData* state, float displayWidth, float displayHeight);
 
     static float getPanelWidth() { return 400.0f; }
-    static float getPanelTop() { return 288.0f; }
+    static float getPanelTop() { return 200.0f; }
 
 private:
     struct Tool {
