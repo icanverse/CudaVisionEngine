@@ -6,6 +6,10 @@ find_package(CUDAToolkit REQUIRED)
 
 add_library(kivilcim-core STATIC
     src/Cuda/CudaError.cpp
+        include/Cuda/HardwareInfoData.h
+        include/Cuda/HardwareDetector.h
+        src/Cuda/HardwareDetector.cpp
+        include/Cuda/HardwareDetector.h
 )
 
 add_library(Kivilcim::Core ALIAS kivilcim-core)
@@ -21,6 +25,8 @@ target_include_directories(kivilcim-core
 target_link_libraries(kivilcim-core
     PUBLIC
         CUDA::cudart
+    PRIVATE
+        glfw
 )
 
 set_target_properties(kivilcim-core PROPERTIES
