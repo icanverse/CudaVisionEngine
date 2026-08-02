@@ -6,6 +6,8 @@
 #include <iostream>
 
 #include "AssetsManager/IconManager.h"
+#include "Cuda/HardwareDetector.h"
+#include "Persistence/KvlcmSerializer.h"
 #include "TextureUtility/CudaDynamicTexture.cuh"
 
 MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), logFont(nullptr) {
@@ -62,6 +64,56 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
 
     logoTextureId = TextureUtility::LoadTextureFromFile("C:/Users/Can/CLionProjects/CudaVisionEngine/lib-assets/logo.png");
     liquidCanvas = new CudaDynamicTexture(512, 288);
+
+    // ==========================================
+    // AKILLI DONANIM TESPİTİ VE AYAR YÜKLEME
+    // ==========================================
+    const std::string prefPath = "C:/Users/Can/Desktop/user_prefs.kvlcm-user-pref";
+
+    // Önce diskten ayarları okumayı deniyoruz[cite: 17]
+    if (!Kivilcim::KvlcmSerializer::loadPreferences(prefPath, userPrefs)) {
+        std::cout << "[Sirca UI] Ayar dosyasi bulunamadi. Ilk calistirma icin donanim taraniyor...\n";
+
+        // Donanımı sadece bu ilk açılışta tarıyoruz[cite: 17]
+        Kcore::HardwareInfoData hwInfo = Kcore::HardwareDetector::inspectSystem(windowHandle);
+
+        // Sisteme özel optimum ayarları (RAM/VRAM limitlerini) belirliyoruz[cite: 17]
+        userPrefs.ram_limit = static_cast<int>(hwInfo.totalSysRAM / 2); // Sistemin yarısı[cite: 17]
+
+        if (hwInfo.dedicatedVRAM > 0) {
+            userPrefs.vram_limit = static_cast<int>(hwInfo.dedicatedVRAM);
+        } else {
+            userPrefs.vram_limit = 4096; // Güvenli varsayılan[cite: 17]
+        }
+
+        userPrefs.enableHardwareAcceleration = hwInfo.cudaAvailable;
+        userPrefs.enableHardwareCuda = hwInfo.cudaAvailable;
+
+        // ==========================================
+        // DONANIM BİLGİLERİNİ ÖNBELLEĞE YAZ
+        // ==========================================
+        userPrefs.hw_cpuModel = hwInfo.cpuModel;
+        userPrefs.hw_gpuModel = hwInfo.gpuModel;
+        userPrefs.hw_totalRamMB = static_cast<int>(hwInfo.totalSysRAM);
+        userPrefs.hw_totalVramMB = static_cast<int>(hwInfo.dedicatedVRAM);
+
+        // Eğer CUDA varsa ilk cihazın çekirdek sayısını alalım
+        if (hwInfo.cudaAvailable && !hwInfo.cudaDevices.empty()) {
+            userPrefs.hw_cudaCores = hwInfo.cudaDevices[0].totalCudaCores;
+        } else {
+            userPrefs.hw_cudaCores = 0;
+        }
+
+        userPrefs.isPreferencesChanged = true;
+
+        // Tarama bittikten sonra bu ideal ayarları diske kaydediyoruz ki bir daha tarama yapmasın[cite: 17]
+        std::vector<Kdata::PreferenceData> prefsToSave = { userPrefs };
+        Kivilcim::KvlcmSerializer::savePreferences(".kvlcm-user-pref", prefPath, prefsToSave);
+
+        std::cout << "[Sirca UI] Donanim tespit edildi ve optimum ayarlar kaydedildi.\n";
+    } else {
+        std::cout << "[Sirca UI] Ayarlar diskten basariyla yuklendi.\n";
+    }
 
     // ==========================================
     // SİNYAL KÖPRÜLERİ (CALLBACKS)

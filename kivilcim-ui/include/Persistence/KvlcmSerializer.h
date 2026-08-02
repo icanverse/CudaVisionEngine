@@ -39,28 +39,96 @@ namespace Kivilcim {
 
     public:
 
-        // ==========================================
+       // ==========================================
         // 1. PREFERENCES (AYARLAR) YÖNETİMİ
         // ==========================================
         static void savePreferences(const std::string& expectedExtension, const std::string& filepath, const std::vector<Kdata::PreferenceData>& users) {
             if (!checkFileExtension(expectedExtension, filepath)) return;
 
             std::ofstream file = writeFile(filepath);
-            file << "### .kvlcm-user-pref ###\n## ~bu dosyayı manuel düzenlemeyiniz ##\n\n";
+            file << "### .kvlcm-user-pref ###\n## ~bu dosyayi manuel duzenlemeyiniz ##\n\n";
 
             for (const auto& user : users) {
-                if (user.isPreferencesChanged) {
-                    file << "PREFERENCES_BEGIN\n";
-                    file << "$" << user.userName << "ıd" << user.userID << std::endl;
-                    file << "H_ACC \n" << user.enableHardwareAcceleration << "\n";
-                    file << "SH_MEM :\n"
-                         << "sh_m " << user.enableSharedMemory << "\n"
-                         << "r  " << user.ram_limit << "\n"
-                         << "vr " << user.vram_limit << "\n";
-                }
+                // Sadece değişiklik varsa değil, ilk kurulumda da yazabilmek için kontrolü yumuşatabilirsin
+                // Veya çağırdığın yerde isPreferencesChanged değerini true yaparsın.
+
+                file << "PREFERENCES_BEGIN\n";
+                file << "USER_ID: " << user.userID << "\n";
+                file << "USER_NAME: " << user.userName << "\n";
+                file << "LANG: " << user.language << "\n";
+
+                file << "HW_ACCEL: " << user.enableHardwareAcceleration << "\n";
+                file << "HW_CUDA: " << user.enableHardwareCuda << "\n";
+                file << "HW_OPENCL: " << user.enableHardwareOpenCL << "\n";
+                file << "HW_CPU: " << user.enableHardwareCPU << "\n";
+
+                file << "SH_MEM: " << user.enableSharedMemory << "\n";
+                file << "RAM_LIMIT: " << user.ram_limit << "\n";
+                file << "VRAM_LIMIT: " << user.vram_limit << "\n";
+
+                file << "CACHE_PATH: " << user.cache_path << "\n";
+                file << "EXP_PATH: " << user.default_export_path << "\n";
+
+                file << "AUTO_SAVE: " << user.enableAutoSave << "\n";
+                file << "AUTO_SAVE_MIN: " << user.autoSaveIntervalMinutes << "\n";
+
+                // Donanım Önbelleği Kaydı
+                file << "HW_CPU_MODEL: " << user.hw_cpuModel << "\n";
+                file << "HW_GPU_MODEL: " << user.hw_gpuModel << "\n";
+                file << "HW_TOTAL_RAM: " << user.hw_totalRamMB << "\n";
+                file << "HW_TOTAL_VRAM: " << user.hw_totalVramMB << "\n";
+                file << "HW_CUDA_CORES: " << user.hw_cudaCores << "\n";
+                file << "PREFERENCES_END\n\n";
             }
         }
 
+        static bool loadPreferences(const std::string& filepath, Kdata::PreferenceData& outPref) {
+            std::ifstream file = readFile(filepath);
+            if (!file.is_open()) return false; // Dosya yoksa ilk çalıştırma demektir!
+
+            std::string line;
+            bool inPref = false;
+
+            while (std::getline(file, line)) {
+                trimLine(line);
+                if (line == "PREFERENCES_BEGIN") {
+                    inPref = true;
+                    continue;
+                }
+                if (line == "PREFERENCES_END") {
+                    inPref = false;
+                    continue;
+                }
+
+                if (inPref) {
+                    if (line.find("USER_ID: ") == 0) outPref.userID = std::stoi(line.substr(9));
+                    else if (line.find("USER_NAME: ") == 0) outPref.userName = line.substr(11);
+                    else if (line.find("LANG: ") == 0) outPref.language = line.substr(6);
+
+                    else if (line.find("HW_ACCEL: ") == 0) outPref.enableHardwareAcceleration = (line.substr(10) == "1");
+                    else if (line.find("HW_CUDA: ") == 0) outPref.enableHardwareCuda = (line.substr(9) == "1");
+                    else if (line.find("HW_OPENCL: ") == 0) outPref.enableHardwareOpenCL = (line.substr(11) == "1");
+                    else if (line.find("HW_CPU: ") == 0) outPref.enableHardwareCPU = (line.substr(8) == "1");
+
+                    else if (line.find("SH_MEM: ") == 0) outPref.enableSharedMemory = (line.substr(8) == "1");
+                    else if (line.find("RAM_LIMIT: ") == 0) outPref.ram_limit = std::stoi(line.substr(11));
+                    else if (line.find("VRAM_LIMIT: ") == 0) outPref.vram_limit = std::stoi(line.substr(12));
+
+                    else if (line.find("CACHE_PATH: ") == 0) outPref.cache_path = line.substr(12);
+                    else if (line.find("EXP_PATH: ") == 0) outPref.default_export_path = line.substr(10);
+
+                    else if (line.find("AUTO_SAVE: ") == 0) outPref.enableAutoSave = (line.substr(11) == "1");
+                    else if (line.find("AUTO_SAVE_MIN: ") == 0) outPref.autoSaveIntervalMinutes = std::stoi(line.substr(15));
+
+                    else if (line.find("HW_CPU_MODEL: ") == 0) outPref.hw_cpuModel = line.substr(14);
+                    else if (line.find("HW_GPU_MODEL: ") == 0) outPref.hw_gpuModel = line.substr(14);
+                    else if (line.find("HW_TOTAL_RAM: ") == 0) outPref.hw_totalRamMB = std::stoi(line.substr(14));
+                    else if (line.find("HW_TOTAL_VRAM: ") == 0) outPref.hw_totalVramMB = std::stoi(line.substr(15));
+                    else if (line.find("HW_CUDA_CORES: ") == 0) outPref.hw_cudaCores = std::stoi(line.substr(15));
+                }
+            }
+            return true;
+        }
         // ==========================================
         // 2. LİBRARY (KÜTÜPHANE) YÖNETİMİ
         // ==========================================

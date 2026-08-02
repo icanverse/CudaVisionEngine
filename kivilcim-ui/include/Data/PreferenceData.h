@@ -11,7 +11,7 @@ namespace Kdata {
         bool isPreferencesChanged = false;
 
         // Kullanıcı Kaydı
-        int userID = 0; // short yerine int yapıldı
+        int userID = 0;
         std::string userName = "Admin";
 
         UITheme theme = UITheme::DARK;
@@ -25,9 +25,9 @@ namespace Kdata {
 
         bool enableSharedMemory = true;
 
-        // BELLEK LİMİTLERİ İÇİN KESİN ÇÖZÜM
-        int ram_limit = 8192;   // unsigned short yerine int yapıldı
-        int vram_limit = 8192;  // unsigned short yerine int yapıldı
+        // BELLEK LİMİTLERİ (MB)
+        int ram_limit = 8192;
+        int vram_limit = 8192;
 
         // Yollar
         std::vector<std::string> recentProjectsPaths;
@@ -36,7 +36,16 @@ namespace Kdata {
 
         // Motor içi konfigürasyonlar
         bool enableAutoSave = true;
-        int autoSaveIntervalMinutes = 10; // short yerine int yapıldı
+        int autoSaveIntervalMinutes = 10;
+
+        // ==========================================
+        // DONANIM ÖNBELLEĞİ (Sadece 1 Kez Taranıp Buraya Yazılır)
+        // ==========================================
+        std::string hw_cpuModel = "Bilinmiyor";
+        std::string hw_gpuModel = "Bilinmiyor";
+        int hw_totalRamMB = 0;
+        int hw_totalVramMB = 0;
+        int hw_cudaCores = 0;
     };
 
 }
