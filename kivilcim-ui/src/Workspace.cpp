@@ -110,16 +110,39 @@ void Workspace::render(Kdata::WorkspaceStateData* state, float displayWidth, flo
     ImGui::PopStyleColor();
 
     if (closeWorkspace) {
-        // Workspace kapanırken editörleri de kapat
+        // Workspace kapanırken editörleri de kapat[cite: 23]
         state->editors.activeEditor = Kdata::ExclusiveEditor::NONE;
         if (onClose) onClose();
         return;
     }
 
-    // YENİ MİMARİ: Editör kontrolü state üzerinden yapılıyor
+    // ==========================================
+    // AKILLI DOKU SEÇİMİ
+    // ==========================================
+    unsigned int activeWorkspaceTexture =
+        (state->project.textureID != 0)
+            ? state->project.textureID
+            : state->project.proxyID;
+    // ==========================================
+    // 1. ANA TUVAL (CANVAS) ÇİZİMİ
+    // ==========================================
+    // Not: Inset (boşluk) değerlerini zaten CanvasPanel.cpp içinde statik olarak
+    // ayarladığımız için buradaki son 4 parametreye 0.0f gönderebiliriz.
+    canvasPanel.render(
+        state,
+        activeWorkspaceTexture,
+        displayWidth,
+        displayHeight,
+        0.0f, 0.0f, 0.0f, 0.0f
+    );
+
+    // ==========================================
+    // 2. ÖZEL EDİTÖRLER (Örn: Derinlik Haritası)
+    // ==========================================
+    // YENİ MİMARİ: Editör kontrolü state üzerinden yapılıyor[cite: 23]
     if (state->editors.isEditorActive() && state->editors.activeEditor == Kdata::ExclusiveEditor::ISO_DEPTH) {
         isoEditor.render(
-            state->project.textureID,
+            activeWorkspaceTexture,
             static_cast<float>(state->project.projectWidth),
             static_cast<float>(state->project.projectHeight)
         );

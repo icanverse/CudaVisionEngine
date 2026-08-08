@@ -345,7 +345,7 @@ int main() {
 // #include "Cuda/HardwareDetector.h"
 //
 // int main() {
-//     Kcore::HardwareInfoData info = Kcore::HardwareDetector::inspectSystem(nullptr);
-//     Kcore::HardwareDetector::printHardwareReport(info);
-//     return 0;
+//      Kcore::HardwareInfoData info = Kcore::HardwareDetector::inspectSystem(nullptr);
+//      Kcore::HardwareDetector::printHardwareReport(info);
+//      return 0;
 // }

@@ -128,12 +128,32 @@ MainUI::MainUI(GLFWwindow* window) : windowHandle(window), logoTextureId(0), log
     });
 
     // SOL PANELDEN GELEN ÇİFT TIKLAMA (DÜZENLE) SİNYALİ
-    // SOL PANELDEN GELEN ÇİFT TIKLAMA (DÜZENLE) SİNYALİ
     leftPanel.setOnProjectDoubleClickedCallback([this](const int& projectID) {
         Kdata::ProjectData* p = leftPanel.getProjectByID(projectID);
         if (p) {
             appState.resetState();
+
+            // Verileri State'e kopyala
             appState.project = *p;
+
+            // ==========================================
+            // YÜKSEK ÇÖZÜNÜRLÜKLÜ GÖRSELİ YÜKLE
+            // ==========================================
+            if (!appState.project.imagePath.empty() &&
+                appState.project.textureID == 0)
+            {
+                std::cout << "[Sirca UI] Full Resolution Texture Yukleniyor : "
+                          << appState.project.imagePath << "\n";
+
+                appState.project.textureID =
+                    TextureUtility::LoadTextureFromFile(
+                        appState.project.imagePath.c_str());
+
+                if (appState.project.textureID == 0)
+                {
+                    std::cout << "[Sirca UI - HATA] Full Resolution Texture Yuklenemedi.\n";
+                }
+            }
 
             // Motoru "Çalışma (Editör)" moduna geçir!
             currentMode = AppMode::WORKSPACE;

@@ -1,13 +1,15 @@
 #include "Tools/IsoDepthEditor.h"
 
+#include <imgui.h>
 #include <string>
+#include <cstdint>
 
 namespace Kivilcim {
-namespace Tools {
+    namespace Tools {
 
-IsoDepthEditor::IsoDepthEditor() {
-    isoLines.clear();
-}
+        IsoDepthEditor::IsoDepthEditor() {
+            isoLines.clear();
+        }
 
 void IsoDepthEditor::render(unsigned int baseTextureID, float imageWidth, float imageHeight) {
     if (!isOpen) return;

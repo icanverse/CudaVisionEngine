@@ -1,62 +1,53 @@
 #pragma once
+
+#include "Data/ProjectData.h"
 #include <string>
 #include <functional>
 #include <atomic>
-#include "Data/ProjectData.h"
+#include <thread>
 
-// İleri bildirim (Incomplete type hatasını önlemek için)
 class CudaDynamicTexture;
 
 class RightPanel {
 public:
     RightPanel();
-    ~RightPanel(); // Bellek sızıntısını önleyecek destructor
+    ~RightPanel();
+
     void render(float displayWidth, float displayHeight);
 
-    void setOnImageImportedCallback(std::function<void(const std::string&)> callback) {
-        onImageImported = callback;
-    }
-
-    // YENİ VE DOĞRU TANIMLAMA (Inline olarak set ediliyor)
+    // MainUI'den gelen callback'i kaydeder
     void setOnProjectCreatedCallback(std::function<void(const Kdata::ProjectData&)> callback) {
         onProjectCreated = callback;
     }
 
 private:
-    std::function<void(const std::string&)> onImageImported;
-
-    // EKSİK OLAN DEĞİŞKEN BURAYA EKLENDİ
     std::function<void(const Kdata::ProjectData&)> onProjectCreated;
 
-    // --- UI DURUM (STATE) DEĞİŞKENLERİ ---
+    // --- UI ve Kdata Hazırlık Durumları ---
     char projectNameBuf[128];
-
-    int docWidth;                 // Genişlik
-    int docHeight;                // Yükseklik
-    int dimMetric;                // 0: Piksel, 1: İnç, 2: cm
-
-    int orientation;              // 0: Dikey (Portrait), 1: Yatay (Landscape)
-
-    int resolution;               // Çözünürlük (DPI/PPI)
-    int resMetric;                // 0: Piksel/İnç, 1: Piksel/cm
-
-    int bgContentMode;            // 0: Beyaz, 1: Siyah, 2: Şeffaf, 3: Özel
-    float bgColor[3];             // Arka Plan Rengi
-
-    std::string selectedImagePath;
-    std::string projectSavePath;  // Proje Kayıt Klasörü
-
+    int docWidth, docHeight;
+    int dimMetric, orientation, resolution, resMetric;
+    int bgContentMode;
+    float bgColor[3];
     bool keepOriginalSize;
 
-    // --- ASENKRON YÜKLEME (THREAD) DEĞİŞKENLERİ ---
+    std::string selectedImagePath;
+    std::string projectSavePath;
+
+    // --- Görsel Öğeler ---
+    CudaDynamicTexture* shaderPreviewTexture;
+    float flowTime;
+
+    // --- THREAD GÜVENLİĞİ (YENİ MİMARİ) ---
     std::atomic<bool> isProcessingImage{false};
     std::atomic<bool> isImageReadyForGPU{false};
+    std::thread workerThread;
 
+    // Thread tarafından yazılıp ana döngü tarafından okunacak ham veriler
     unsigned char* rawResizedData = nullptr;
     int loadedOrigW = 0;
     int loadedOrigH = 0;
 
-    // --- LİKİT AKIŞ (SHADER) DEĞİŞKENLERİ ---
-    CudaDynamicTexture* shaderPreviewTexture;
-    float flowTime;
+    // Arka plan işlemini başlatan yardımcı fonksiyon
+    void startImageProcessing(const std::string& path);
 };

@@ -13,6 +13,13 @@ endif()
 
 add_library(kivilcim-graphics STATIC ${GRAPHICS_SOURCES})
 
+# Derleme standartlarını C++20 ve CUDA 20 olarak sabitliyoruz
+set_target_properties(kivilcim-graphics PROPERTIES
+        CXX_STANDARD 20
+        CUDA_STANDARD 20
+        CUDA_STANDARD_REQUIRED ON
+)
+
 target_include_directories(kivilcim-graphics
         PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -20,6 +27,7 @@ target_include_directories(kivilcim-graphics
         PRIVATE
         "${CMAKE_SOURCE_DIR}/lib"
 )
+
 # OpenGL'e ve Çekirdeğe bağlı
 target_link_libraries(kivilcim-graphics PUBLIC
         kivilcim-vision

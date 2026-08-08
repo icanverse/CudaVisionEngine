@@ -1,12 +1,35 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.28)
 
-# Proje ve Diller
-project(CudaVisionEngine LANGUAGES CXX CUDA)
+# =========================================================================
+# CUDA ARCHITECTURE
+# project() çağrısından ÖNCE olmalı
+# =========================================================================
+
+if(WIN32)
+
+    set(CMAKE_CUDA_COMPILER
+            "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/nvcc.exe")
+    set(CMAKE_CUDA_ARCHITECTURES 89)
+
+elseif(UNIX)
+
+    set(CMAKE_CUDA_COMPILER
+            "/usr/local/cuda/bin/nvcc")
+    set(CMAKE_CUDA_ARCHITECTURES 87)
+
+endif()
+# =========================================================================
+# PROJE
+# =========================================================================
+
+project(CudaVisionEngine
+        LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set(CMAKE_CUDA_STANDARD 20)
-set(CMAKE_CUDA_ARCHITECTURES "native")
-set(CMAKE_CUDA_COMPILER "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0/bin/nvcc.exe")
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Temel Sistem Bağımlılıkları
 find_package(CUDAToolkit REQUIRED)
@@ -29,28 +52,26 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glfw)
 
 # 2. FFmpeg (Video I/O İşlemleri İçin)
-FetchContent_Declare(
-        ffmpeg_bins
-        URL "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip"
-)
-FetchContent_MakeAvailable(ffmpeg_bins)
-FetchContent_GetProperties(ffmpeg_bins)
-set(FFMPEG_DIR ${ffmpeg_bins_SOURCE_DIR})
+if(WIN32)
+    # Sadece Windows tarafında hazır derlenmiş kütüphaneyi indir
+    FetchContent_Declare(
+            ffmpeg_bins
+            URL "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip"
+    )
+    FetchContent_MakeAvailable(ffmpeg_bins)
+    FetchContent_GetProperties(ffmpeg_bins)
+    set(FFMPEG_DIR ${ffmpeg_bins_SOURCE_DIR})
+else()
+    # Linux (Jetson) tarafında sisteme kurulu donanımsal FFmpeg'i bul
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(FFMPEG REQUIRED libavcodec libavformat libavutil libswscale)
+endif()
 
 # =========================================================================
 # MODÜLLERİN (SUBDIRECTORIES) EKLENMESİ
 # =========================================================================
-
 add_subdirectory(kivilcim-core)
-
-# 1. Çekirdek Motor (Sadece C++ ve CUDA)
 add_subdirectory(kivilcim-vision)
-
-# 2. Girdi/Çıktı ve Veri İşleme (FFmpeg ve stb_image bağları)
 add_subdirectory(kivilcim-io)
-
-# 3. Görselleştirme (OpenGL ve CUDA Doku Köprüleri)
 add_subdirectory(kivilcim-graphics)
-
-# 4. Kullanıcı Arayüzü (Ana Çalıştırılabilir Dosya ve ImGui Burada Olacak)
 add_subdirectory(kivilcim-ui)

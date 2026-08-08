@@ -7,7 +7,7 @@
 #include "Layers/WorkspaceToolboxes.h"
 #include "WorkspaceTopPanel.h"
 #include "Layers/QuickInspectorToolbox.h"
-#include "tools/IsoDepthEditor.h"
+#include "Tools/IsoDepthEditor.h"
 
 class Workspace {
 public:
@@ -24,6 +24,7 @@ private:
     std::function<void()> onClose;
 
     // --- ARAYÜZ BİLEŞENLERİ (Alt paneller) ---
+    CanvasPanel canvasPanel;
     QuickLeftToolbox quickToolbar;
     QuickTopRightToolbox topToolbox;
     WorkspaceToolboxes additionalToolboxes;
